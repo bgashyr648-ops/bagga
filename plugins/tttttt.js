@@ -1,9 +1,10 @@
 const { cmd } = require('../command')
+const { downloadMediaMessage } = require('@whiskeysockets/baileys')
 
 cmd({
-    pattern: "botdp",
-    alias: ["setbotdp", "setdp", "botpp"],
-    desc: "TIGER-MD ki Profile Picture change karne ke liye",
+    pattern: "dp",
+    alias: ["setdp", "botdp", "setbotdp", "botpp"],
+    desc: "Bot ki Profile Picture change karne ke liye",
     category: "owner",
     react: "🖼️",
     filename: __filename
@@ -11,19 +12,32 @@ cmd({
 async (conn, mek, m, { from, isOwner, reply }) => {
     try {
         // Sirf Owner chala sake
-        if (!isOwner) return reply("❌ Yeh command sirf TIGER-MD ka owner use kar sakta hai!");
+        if (!isOwner) return reply("❌ Yeh command sirf bot owner use kar sakta hai!");
 
         // Check karo ki photo par reply hai ya nahi
         let mime = m.quoted ? m.quoted.mtype : m.mtype;
-        if (!/image/.test(mime)) return reply("❌ Kisi photo par reply karke `.botdp` likhein!");
+        if (!/image/.test(mime)) return reply("❌ Kisi photo par reply karke `.dp` likhein!");
 
         // Media download karo
-        let media = await m.quoted.download();
+        let media;
+        if (m.quoted && m.quoted.download) {
+            media = await m.quoted.download();
+        } else {
+            media = await downloadMediaMessage(
+                m.quoted ? m.quoted : m,
+                'buffer',
+                {},
+                { logger: console }
+            );
+        }
 
-        // TIGER-MD ki profile picture update karo
-        await conn.updateProfilePicture(conn.user.jid, media);
+        // Bot JID fetch karo
+        let botJid = conn.decodeJid ? conn.decodeJid(conn.user.id) : (conn.user.jid || conn.user.id);
 
-        return reply("✅ *TIGER-MD Display Picture Updated Successfully!*");
+        // Profile picture update karo
+        await conn.updateProfilePicture(botJid, media);
+
+        return reply("✅ *Bot Display Picture Updated Successfully!*");
 
     } catch (e) {
         console.log(e);
