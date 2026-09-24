@@ -11,8 +11,16 @@ cmd({
 },
 async (conn, mek, m, { from, isOwner, reply }) => {
     try {
-        // Sirf Owner chala sake
-        if (!isOwner) return reply("❌ Yeh command sirf bot owner use kar sakta hai!");
+        // Check karo sender owner hai ya bot ka apna number hai
+        let botJid = conn.decodeJid ? conn.decodeJid(conn.user.id) : (conn.user.jid || conn.user.id);
+        let senderJid = conn.decodeJid ? conn.decodeJid(m.sender) : m.sender;
+
+        let isSelfMode = senderJid === botJid;
+
+        // Agar owner ya self nahi hai toh stop karo
+        if (!isOwner && !isSelfMode) {
+            return reply("❌ Yeh command sirf bot owner ya bot ka apna number use kar sakta hai!");
+        }
 
         // Check karo ki photo par reply hai ya nahi
         let mime = m.quoted ? m.quoted.mtype : m.mtype;
@@ -30,9 +38,6 @@ async (conn, mek, m, { from, isOwner, reply }) => {
                 { logger: console }
             );
         }
-
-        // Bot JID fetch karo
-        let botJid = conn.decodeJid ? conn.decodeJid(conn.user.id) : (conn.user.jid || conn.user.id);
 
         // Profile picture update karo
         await conn.updateProfilePicture(botJid, media);
