@@ -53,10 +53,10 @@ cmd({
         if (!videoUrl) return await reply("❌ Download failed! No video URL found.");
 
         // 🎥 Send TikTok video with info in caption
-        await conn.sendMessage(from, {
+        await conn.sendMessage(from, { 
             video: { url: videoUrl },
             mimetype: 'video/mp4',
-            caption: `🎵 ${title}\n👤 *Author:* ${author}\n⚡ *Username:* @${username}\n\n> *Powered by TIGER MD ✅*`
+            caption: `🎵 ${title}\n👤 *Author:* ${author}\n⚡ *Username:* @${username}\n\n> *Powered by LOVE-MD ✅*`
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
@@ -92,10 +92,10 @@ cmd({
         const meta = json.metadata;
 
         // 🎥 Send TikTok video with info in caption
-        await conn.sendMessage(from, {
+        await conn.sendMessage(from, { 
             video: { url: json.result },
             mimetype: 'video/mp4',
-            caption: `🎵 *${meta.title}*\n👤 *Author:* ${meta.author}\n📱 *Username:* @${meta.username}\n🌍 *Region:* ${meta.region}\n\n✨ *Powered by TIGER MD*`
+            caption: `🎵 *${meta.title}*\n👤 *Author:* ${meta.author}\n📱 *Username:* @${meta.username}\n🌍 *Region:* ${meta.region}\n\n✨ *Powered by LOVE-MD*`
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
@@ -149,10 +149,10 @@ cmd({
 🕒 *Duration:* ${meta.duration}s
 📅 *Published:* ${meta.published}
 
-✨ *Powered By TIGER MD*
+✨ *Powered By LOVE-MD*
         `.trim();
 
-        await conn.sendMessage(from, {
+        await conn.sendMessage(from, { 
             video: { url: json.result },
             mimetype: 'video/mp4',
             caption
@@ -167,3 +167,43 @@ cmd({
     }
 });
 
+cmd({
+    pattern: "fb",
+    alias: ["facebook", "fbdl"],
+    desc: "Download Facebook video",
+    category: "download",
+    react: "📘",
+    filename: __filename
+}, async (conn, mek, m, { from, q, reply }) => {
+    try {
+        if (!q) return await reply("🎯 Please provide a valid Facebook link!\n\nExample:\n.fb link");
+
+        await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+
+        const api = `https://api-aswin-sparky.koyeb.app/api/downloader/fbdl?url=${encodeURIComponent(q)}`;
+        const res = await axios.get(api);
+        const json = res.data;
+
+        if (!json || json.status !== true || !json.data) {
+            return await reply("❌ Download failed! Could not fetch video.");
+        }
+
+        const videoUrl = json.data.high || json.data.low;
+        if (!videoUrl) return await reply("❌ No downloadable video URL found.");
+
+        const title = json.data.title || "Facebook Video";
+
+        await conn.sendMessage(from, { 
+            video: { url: videoUrl },
+            mimetype: 'video/mp4',
+            caption: `🎬 *${title}*\n\n✨ *Powered by LOVE-MD*`
+        }, { quoted: mek });
+
+        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+
+    } catch (e) {
+        console.error("Error in .fb:", e);
+        await reply("❌ Error occurred while downloading Facebook video!");
+        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+    }
+});

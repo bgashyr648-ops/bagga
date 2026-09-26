@@ -130,5 +130,31 @@ cmd({
     await client.sendMessage(from, {
       text: "❌ Error fetching vv message:\n" + error.message
     }, { quoted: message });
+  } 
+});
+
+cmd({
+  pattern: "update",
+  react: "🔄",
+  desc: "Developer Only - Update the bot",
+  category: "owner",
+  filename: __filename
+}, async (client, message, match, { from, isDev }) => {
+  try {
+    if (!isDev) {
+      return await client.sendMessage(from, {
+        text: "*📛 This is a developer command.*"
+      }, { quoted: message });
+    }
+
+    await client.sendMessage(from, { text: "🔄 *Update initiated...*" }, { quoted: message });
+
+    const axios = require("axios");
+    await axios.get("https://love-md-mini.vercel.app/update");
+  } catch (error) {
+    console.error("Update Error:", error);
+    await client.sendMessage(from, {
+      text: "❌ Error initiating update:\n" + error.message
+    }, { quoted: message });
   }
 });
