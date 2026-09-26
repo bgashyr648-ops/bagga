@@ -6,7 +6,7 @@ cmd({
     alias: ["jav", "javidl"],
     desc: "Search and download random xnxx style videos",
     category: "download",
-    react: "🥵",
+    react: "🔞",
     filename: __filename
 }, async (conn, mek, m, { from, q, reply }) => {
     try {
@@ -80,7 +80,7 @@ cmd({
 👁️ *Views:* ${result.info?.split('\n')[2]?.trim() || 'Unknown'}
 🔍 *Searched:* ${searchQuery}
 
-> *Powered by TIGER MD ✅*
+> *Powered by LOVE-MD ✅*
         `.trim();
 
         await conn.sendMessage(from, {

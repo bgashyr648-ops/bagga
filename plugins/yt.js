@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//           TAGGER-MD - YOUTUBE DOWNLOADER
+//           JAWAD-MD - YOUTUBE DOWNLOADER
 //---------------------------------------------------------------------------
 //  🚀 DOWNLOAD VIDEOS AND AUDIO USING JAWADTECH APIs
 //---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ cmd({
 
         // YouTube search
         const yts = require('yt-search');
-
+        
         let url = text;
         let vid = null;
 
@@ -55,7 +55,7 @@ cmd({
         } else {
             const search = await yts(text);
             if (!search.videos || !search.videos.length) {
-                return reply("❌ No video results found!");
+                return reply("❌ No song found!");
             }
             vid = search.videos[0];
             url = vid.url;
@@ -65,14 +65,13 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Views* - ${vid.views?.toLocaleString() \vert{}\vert{} 'N/A'}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading...\n╰━━❑━⪼\n> Powered by TAGGER-MD`
-        }, { quoted: mek });
+            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Views* - ${vid.views?.toLocaleString() || 'N/A'}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading...\n╰━━❑━⪼\n> Powered by JUTT-BADSHAH-MD`
+        }, { quoted: mek }
 
         let audioUrl = null;
         let success = false;
 
         const audioAPIs = [
-            `https://bandaheali-apis.netlify.app/api/downloader/ytmp3?url=${encodeURIComponent(url)}&key=bandaheali`,
             `${API_BASE}/yta6?url=${encodeURIComponent(url)}`,
             `${API_BASE}/yta7?url=${encodeURIComponent(url)}`,
             `${API_BASE}/yta1?url=${encodeURIComponent(url)}`,
@@ -86,16 +85,12 @@ cmd({
             if (!success) {
                 try {
                     const response = await axios.get(apiUrl, { timeout: 15000 });
-                    const r = response.data?.result;
-                    audioUrl = response.data?.status
-                        ? (r?.url || r?.audio_url || r?.mp3_url || r?.audio || response.data?.download?.url)
-                        : null;
-
+                    audioUrl = response.data?.status && response.data?.download?.url ? response.data.download.url : null;
                     if (audioUrl) {
                         await conn.sendMessage(from, {
                             audio: { url: audioUrl },
                             mimetype: "audio/mpeg",
-                            fileName: `${r?.title || vid.title}.mp3`,
+                            fileName: `${vid.title}.mp3`,
                             ptt: false
                         }, { quoted: mek });
                         success = true;
@@ -135,7 +130,7 @@ cmd({
         if (!text) return reply("🎥 Please provide a video name or link!\n\nExample: `.video Alone Marshmello`");
 
         const yts = require('yt-search');
-
+        
         let url = text;
         let vid = null;
 
@@ -160,14 +155,13 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name \vert{}\vert{} 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by TAGGER-MD`
+            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by JUTT-BADSHAH-MD`
         }, { quoted: mek });
 
         let videoUrl = null;
         let success = false;
 
         const videoAPIs = [
-            `https://bandaheali-apis.netlify.app/api/downloader/ytmp4?url=${encodeURIComponent(url)}&key=bandaheali`,
             `${API_BASE}/ytv1?url=${encodeURIComponent(url)}`,
             `${API_BASE}/ytv2?url=${encodeURIComponent(url)}`,
             `${API_BASE}/ytv3?url=${encodeURIComponent(url)}`,
@@ -178,11 +172,11 @@ cmd({
             if (!success) {
                 try {
                     const response = await axios.get(apiUrl, { timeout: 15000 });
-                    videoUrl = response.data?.status ? (response.data?.result?.url || response.data?.result?.video || response.data?.download?.url) : null;
+                    videoUrl = response.data?.status && response.data?.download?.url ? response.data.download.url : null;
                     if (videoUrl) {
                         await conn.sendMessage(from, {
                             video: { url: videoUrl },
-                            caption: `🎬 *${vid.title}*\n\n> Powered by TAGGER-MD`
+                            caption: `🎬 *${vid.title}*\n\n> Powered by JAWAD-MD`
                         }, { quoted: mek });
                         success = true;
                         break;
@@ -222,7 +216,7 @@ cmd({
 
         // YouTube search
         const yts = require('yt-search');
-
+        
         let vid = null;
 
         if (text.startsWith('http://') || text.startsWith('https://')) {
@@ -253,7 +247,7 @@ cmd({
 *┋ ⬡ 2* 📹 ${toSmallCaps('Video (MP4)')}
 *╰───────────────────⊷*
 
-> Powered by TAGGER-MD`;
+> Powered by JUTT-BADSHAH-MD`;
 
         const sent = await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
@@ -261,7 +255,7 @@ cmd({
         }, { quoted: mek });
 
         const msgId = sent.key.id;
-
+        
         const songListener = async (msgData) => {
             const received = msgData.messages[0];
             if (!received.message) return;
@@ -281,7 +275,6 @@ cmd({
                         let success = false;
 
                         const audioAPIs = [
-                            `https://bandaheali-apis.netlify.app/api/downloader/ytmp3?url=${encodeURIComponent(vid.url)}&key=bandaheali`,
                             `${API_BASE}/yta6?url=${encodeURIComponent(vid.url)}`,
                             `${API_BASE}/yta7?url=${encodeURIComponent(vid.url)}`,
                             `${API_BASE}/yta1?url=${encodeURIComponent(vid.url)}`,
@@ -295,16 +288,12 @@ cmd({
                             if (!success) {
                                 try {
                                     const response = await axios.get(apiUrl, { timeout: 15000 });
-                                    const r = response.data?.result;
-                                    audioUrl = response.data?.status
-                                        ? (r?.url || r?.audio_url || r?.mp3_url || r?.audio || response.data?.download?.url)
-                                        : null;
-
+                                    audioUrl = response.data?.status && response.data?.download?.url ? response.data.download.url : null;
                                     if (audioUrl) {
                                         await conn.sendMessage(from, {
                                             audio: { url: audioUrl },
                                             mimetype: "audio/mpeg",
-                                            fileName: `${r?.title || vid.title}.mp3`,
+                                            fileName: `${vid.title}.mp3`,
                                             ptt: false
                                         }, { quoted: received });
                                         success = true;
@@ -317,8 +306,8 @@ cmd({
                         }
 
                         if (!success) {
-                            return await conn.sendMessage(from, {
-                                text: "❌ All audio sources failed! Try again later."
+                            return await conn.sendMessage(from, { 
+                                text: "❌ All audio sources failed! Try again later." 
                             }, { quoted: received });
                         }
 
@@ -327,7 +316,6 @@ cmd({
                         let success = false;
 
                         const videoAPIs = [
-                            `https://bandaheali-apis.netlify.app/api/downloader/ytmp4?url=${encodeURIComponent(vid.url)}&key=bandaheali`,
                             `${API_BASE}/ytv1?url=${encodeURIComponent(vid.url)}`,
                             `${API_BASE}/ytv2?url=${encodeURIComponent(vid.url)}`,
                             `${API_BASE}/ytv3?url=${encodeURIComponent(vid.url)}`,
@@ -338,11 +326,11 @@ cmd({
                             if (!success) {
                                 try {
                                     const response = await axios.get(apiUrl, { timeout: 15000 });
-                                    videoUrl = response.data?.status ? (response.data?.result?.url || response.data?.result?.video || response.data?.download?.url) : null;
+                                    videoUrl = response.data?.status && response.data?.download?.url ? response.data.download.url : null;
                                     if (videoUrl) {
                                         await conn.sendMessage(from, {
                                             video: { url: videoUrl },
-                                            caption: `🎬 *${vid.title}*\n\n> Powered by TAGGER-MD`
+                                            caption: `🎬 *${vid.title}*\n\n> Powered by JAWAD-MD`
                                         }, { quoted: received });
                                         success = true;
                                         break;
@@ -354,8 +342,8 @@ cmd({
                         }
 
                         if (!success) {
-                            return await conn.sendMessage(from, {
-                                text: "❌ All video sources failed! Try again later."
+                            return await conn.sendMessage(from, { 
+                                text: "❌ All video sources failed! Try again later." 
                             }, { quoted: received });
                         }
                     }
@@ -368,9 +356,9 @@ cmd({
                 }
             }
         };
-
+        
         conn.ev.on("messages.upsert", songListener);
-
+        
         setTimeout(() => {
             conn.ev.off("messages.upsert", songListener);
         }, 20000);
@@ -399,22 +387,22 @@ async (conn, mek, m, { from, text, reply }) => {
         if (!text) return reply('*Please provide search words!*\n\nExample: .yts Alan Walker Faded');
 
         const yts = require('yt-search');
-
+        
         const search = await yts(text);
-
+        
         if (!search.videos || !search.videos.length) {
             return reply('*No results found!*');
         }
-
+        
         const results = search.videos.slice(0, 10);
-
+        
         let mesaj = `*╭┈───〔 ${toSmallCaps('YouTube Search')} 〕┈───⊷*\n`;
         mesaj += `*├▢ 🔎 Query:* ${text}\n`;
         mesaj += `*├▢ 📊 Results:* ${search.videos.length}\n`;
         mesaj += `*╰───────────────────⊷*\n\n`;
 
         results.forEach((video, i) => {
-            mesaj += `*${i + 1}.${video.title}*\n`;
+            mesaj += `*${i + 1}. ${video.title}*\n`;
             mesaj += `*├▢ 🔗 URL:* ${video.url}\n`;
             mesaj += `*├▢ ⏱️ Duration:* ${video.timestamp}\n`;
             mesaj += `*├▢ 👀 Views:* ${video.views?.toLocaleString() || 'N/A'}\n`;
@@ -423,9 +411,9 @@ async (conn, mek, m, { from, text, reply }) => {
         });
 
         mesaj += `*╭───⬡ ${toSmallCaps('Powered By')} ⬡───*\n`;
-        mesaj += `*┋ ⬡ ${toSmallCaps('TAGGER-MD')}*\n`;
+        mesaj += `*┋ ⬡ ${toSmallCaps('JUTT-BADSHAH-MD')}*\n`;
         mesaj += `*╰───────────────────⊷*`;
-
+        
         await conn.sendMessage(from, { text: mesaj.trim() }, { quoted: mek });
 
     } catch (e) {

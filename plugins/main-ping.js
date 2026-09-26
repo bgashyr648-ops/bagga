@@ -11,7 +11,7 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, sender, reply }) => {
     try {
-        const start = new Date().getTime();
+        const start = Date.now();
 
         const reactionEmojis = ['🔥', '⚡', '🚀', '💨', '🎯', '🎉', '🌟', '💥', '🕐', '🔹'];
         const textEmojis = ['💎', '🏆', '⚡️', '🚀', '🎶', '🌠', '🌀', '🔱', '🛡️', '✨'];
@@ -25,30 +25,30 @@ async (conn, mek, m, { from, quoted, sender, reply }) => {
         }
 
         // Send reaction using conn.sendMessage()
-        await conn.sendMessage(from, {
-            react: { text: textEmoji, key: mek.key }
+        await conn.sendMessage(from, { 
+            react: { text: textEmoji, key: mek.key } 
         });
 
-        const end = new Date().getTime();
-        const responseTime = (end - start) / 1000;
+        const end = Date.now();
+        const responseTime = end - start;
 
-        const text = `> *TlGER-MD SPEED: ${responseTime.toFixed(2)}ms ${reactionEmoji}*`;
+        const text = `*⚡ LOVE-MD SPEED TEST ⚡*\n\n*🚀 Response Time:* \`${responseTime} ms\`\n*✨ Status:* \`Super Fast & Active\`\n*🎈 Host:* \`High Speed Server\`\n\n> *Powered by LOVE-MD*`;
 
-        await conn.sendMessage(from, {
+        await conn.sendMessage(from, { 
             text,
             contextInfo: {
                 mentionedJid: [sender],
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363411750982159@newsletter',
-                    newsletterName: "TlGER-MD",
+                    newsletterJid: '120363426314834573@newsletter',
+                    newsletterName: "LOVE MD",
                     serverMessageId: 143
                 }
             }
         }, { quoted: mek });
 
-    } catch (e) {
+    } catch (e) { 
         console.error("Error in ping command:", e);
         reply(`An error occurred: ${e.message}`);
     }
@@ -65,24 +65,23 @@ async (conn, mek, m, { from, reply }) => {
     try {
         const startTime = Date.now();
 
-        // Simulated natural processing delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-
+        // Removed artificial delay to enhance speed
         const endTime = Date.now();
         const ping = endTime - startTime;
 
         // Speed category
         let status;
-        if (ping < 1000) status = "⚡ *Fast & Responsive*";
-        else if (ping < 1400) status = "⚙️ *Normal Speed*";
+        if (ping < 100) status = "🚀 *Blazing Fast*";
+        else if (ping < 500) status = "⚡ *Fast & Responsive*";
         else status = "🐢 *Slow Response*";
 
         // Stylish formatted output
         const msg = `
-*╭┈──〔 ⚡ TlGER-MD Pɪɴɢ 〕─⊷*
-*├▢ 📶 Response:* ${ping} ms
+*╭┈──〔 ⚡ LOVE-MD SPEED 〕─⊷*
+*├▢ 📶 Latency:* \`${ping} ms\`
 *├▢ 🧠 Status:* ${status}
-*├▢ 💫 Mode:* Active & Stable
+*├▢ 💫 Mode:* \`Active & Stable\`
+*├▢ 🛡️ Security:* \`Secured\`
 *╰───────────────⊷*
         `;
 

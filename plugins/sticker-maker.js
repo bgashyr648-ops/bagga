@@ -95,3 +95,31 @@ cmd({
         reply(`❌ ${error.message}`);
     }
 });
+
+// Convert Sticker to Image/Photo Command
+cmd({
+    pattern: "stickertophoto",
+    alias: ["stimg", "stoimg", "stickertoimg"],
+    desc: "Convert a sticker back to an image / photo.",
+    react: "🖼️",
+    category: "tools",
+    use: "Reply to a sticker",
+    filename: __filename,
+}, async (conn, mek, m, { reply }) => {
+    try {
+        if (!mek.quoted) return reply("*Please reply to a sticker to convert it to an image!*");
+        
+        let mime = mek.quoted.mtype;
+        if (mime !== "stickerMessage") {
+            return reply("*This is not a sticker! Please reply to a valid sticker.*");
+        }
+
+        const stickerBuffer = await mek.quoted.download();
+        const imageBuffer = await StickerMaker.convertStickerToImage(stickerBuffer);
+
+        await conn.sendMessage(m.chat, { image: imageBuffer, caption: "*Converted from Sticker successfully!*" }, { quoted: mek });
+    } catch (error) {
+        console.error("Sticker to image conversion error:", error);
+        reply(`❌ Failed to convert sticker to photo: ${error.message}`);
+    }
+});
