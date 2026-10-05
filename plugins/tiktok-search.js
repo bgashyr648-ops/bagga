@@ -52,7 +52,7 @@ cmd({
                           `*💬 Comments*: ${video.coment?.toLocaleString() || '0'}\n` +
                           `*🔁 Shares*: ${video.share?.toLocaleString() || '0'}\n` +
                           `*🌐 Region*: ${video.region || 'Unknown'}\n\n` +
-                          `> *© Powered by KHAN-MD*`;
+                          `> *© Powered by Nobita-MD*`;
             
             if (video.hd) {
                 await conn.sendMessage(
@@ -109,7 +109,7 @@ async (conn, mek, m, { from, q, reply }) => {
         
         for (const video of results) {
             try {
-                const caption = `🎵 *${video.title || 'TikTok Video'}*\n\n👤 Author: ${video.author || 'Unknown'}\n⏱️ Duration: ${video.duration || "Unknown"}\n🔗 URL: ${video.link}\n\n_Powered by KHAN-MD-BOT_`;
+                const caption = `🎵 *${video.title || 'TikTok Video'}*\n\n👤 Author: ${video.author || 'Unknown'}\n⏱️ Duration: ${video.duration || "Unknown"}\n🔗 URL: ${video.link}\n\n_Powered by Nobita-MD-BOT_`;
 
                 if (video.nowm) {
                     await conn.sendMessage(from, {
