@@ -80,7 +80,7 @@ cmd({
 👁️ *Views:* ${result.info?.split('\n')[2]?.trim() || 'Unknown'}
 🔍 *Searched:* ${searchQuery}
 
-> *Powered by TIGER MD ✅*
+> *Powered by Nobita-MD ✅*
         `.trim();
 
         await conn.sendMessage(from, {
