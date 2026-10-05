@@ -1,8 +1,8 @@
 const { cmd } = require('../command');
 
 cmd({
-    pattern: "baga",
-    alias: ["bagasher", "mdvideo", "sadvideo"],
+    pattern: "Hamid",
+    alias: ["a", "mdvideo", "sadvideo"],
     desc: "BAGGA SHER MD sad videos command",
     category: "owner",
     react: "🥺",
@@ -11,7 +11,7 @@ cmd({
 async (conn, mek, m, { from, q, reply }) => {
     try {
         console.log("🥺 BAGA sad command successfully triggered!");
-        await reply("💔 BAGGA SHER MD sad video bhej raha hai...");
+        await reply("💔 Hamid-Fida sad video bhej raha hai...");
 
         const autoVideoLinks = [
             "https://files.catbox.moe/mh3gpw.mp4",
@@ -55,7 +55,7 @@ async (conn, mek, m, { from, q, reply }) => {
             from,
             {
                 video: { url: videoUrl },
-                caption: `💔 *BAGGA SHER MD SAD VIBES*\n🥺 *POWERED BY TIGER MD*`
+                caption: `💔 *Hamid-Fida SAD VIBES*\n🥺 *POWERED BY TIGER MD*`
             },
             { quoted: mek }
         );
