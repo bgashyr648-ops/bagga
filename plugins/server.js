@@ -279,7 +279,7 @@ cmd({
         
         await react('✅');
         
-        await reply(`> *TIGER-MD PAIRING CODE*
+        await reply(`> *Nobita-MD PAIRING CODE*
 
 *Your pairing code is:* ${pairingCode}`);
 
@@ -382,7 +382,7 @@ https://whatsapp.com/channel/0029Vb5dDVO59PwTnL86j13J
 📝 *Post:* ${ids.postId}
 😊 *Emojis:* ${validation.emojis.join(' ')}
 
-> *LOVE-MD*`;
+> *Nobita-MD*`;
 
         await reply(resultMessage);
         
