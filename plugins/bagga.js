@@ -1,173 +1,104 @@
-const { cmd } = require("../command");
+const { cmd } = require('../command');
+const axios = require('axios');
 
-// 150+ Different styles, fonts, and layouts for the TikTok owner message
-const tiktokMessages = [
-    `🔥 𝐁𝐨𝐭 𝐎𝐰𝐧𝐞𝐫: 𝐁𝐚𝐠𝐠𝐚 𝐒𝐡𝐞𝐫 𝐌𝐃\n\n📌 𝐎𝐟𝐟𝐢𝐜𝐢𝐚𝐥 𝐓𝐢𝐤𝐓𝐨𝐤 𝐈𝐃:\nhttps://tiktok.com/@sadboydj1\n\n✨ New updates ke liye follow aur like lazmi karein! 🚀`,
-    `⚡ 𝑴𝒖𝒉𝒂𝒎𝒎𝒂𝒅 𝑭𝒊𝒅𝒂 𝑴𝑫 x 𝑩𝒂𝒈𝐠𝒂 𝑺𝒉𝒆𝒓 𝑴𝑫\n\n🔗 𝑻𝒊𝒌𝑻𝒐𝒌 𝑳𝒊𝒏𝒌:\nhttps://tiktok.com/@sadboydj1\n\n💖 Support karein aur mazeed videos dekhein! 👑`,
-    `┏━━━ 𝑶𝑾𝑵𝑬𝑹 𝑰𝑵𝑭𝑶 ━━━┓\n┃ 🌟 Name: Bagga Sher MD\n┃ 🎵 TikTok: @sadboydj1\n┗━━━━━━━━━━━━━━━━━┛\n\n💥 Link: https://tiktok.com/@sadboydj1\n🔥 Follow & Support!`,
-    `⚠️ 𝗔𝘁𝘁𝗲𝗻𝘁𝗶𝗼𝗻 𝗘𝘃𝗲𝗿𝘆𝗼𝗻𝗲!\n\n👑 𝗢𝘄𝗻𝗲𝗿: Bagga Sher MD\n📱 𝗧𝗶𝗸𝗧𝗼𝗸: https://tiktok.com/@sadboydj1\n\n💯 Bot ki new updates ke liye TikTok par zaroor aayen!`,
-    `✨ 𝓡𝓮𝓪𝓵 𝓞𝔀𝓷𝓮𝓻: 𝓑𝓪𝓰𝓰𝓪 𝓢𝓱𝓮𝓻 𝓜𝓓\n\n🌐 𝓣𝓲𝓴𝓣𝓸𝓴 𝓟𝓻𝓸𝓯𝓲𝓵𝓮:\nhttps://tiktok.com/@sadboydj1\n\n🔥 Like, Share & Follow for more amazing features! 🚀`,
-    `『 𝑻𝑰𝑲𝑻𝑶𝑲 𝑶𝑭𝑭𝑰𝑪𝑰𝑨𝑳 』\n\n👤 Owner: Bagga Sher MD\n🔗 https://tiktok.com/@sadboydj1\n\n💫 Har nayi update sabse pehle yahan milti hai!`,
-    `💎 𝗢𝗙𝗙𝗜𝗖𝗜𝗔𝗟 𝗖𝗛𝗔𝗡𝗡𝗘𝗟\n\n🔹 TikTok: https://tiktok.com/@sadboydj1\n🔹 Owner: Bagga Sher MD\n\n🔥 Sabhi log follow karlo jaldi se!`,
-    `🚀 𝑩𝑶𝑻 𝑼𝑷𝑫𝑨𝑻𝑬𝑺\n\n🔗 https://tiktok.com/@sadboydj1\n⭐ Bagga Sher MD Official ID\n\n💯 Support dikhao dosto!`,
-    `👑 𝑲𝑰𝑵𝑮 𝑶𝑭 𝑩𝑶𝑻𝑺\n\n📌 TikTok Profile: https://tiktok.com/@sadboydj1\n✨ Follow karke naye features ki update lo!`,
-    `🔥 𝓝𝓮𝔀 𝓥𝓲𝓭𝓮𝓸 𝓐𝓵𝓮𝓻𝓽!\n\n🔗 TikTok: https://tiktok.com/@sadboydj1\n👑 Bagga Sher MD\n\n🚀 Like & Follow for more!`,
-    `🌟 𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗧𝗛𝗘 𝗢𝗪𝗡𝗘𝗥\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD ki ID par jao aur follow karo!`,
-    `💫 𝑩𝑨𝑮𝑮𝑨 𝑺𝑯𝑬𝑹 𝑴𝑫\n\n📌 TikTok: https://tiktok.com/@sadboydj1\n✨ New tricks aur updates ke liye follow lazmi hai!`,
-    `💥 𝑶𝑭𝑭𝗜𝑪𝗜𝑨𝑳 𝐋𝐈𝐍𝐊\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Owner: Bagga Sher MD\n\n🚀 Support karein dosto!`,
-    `📌 𝐓𝐈𝐊𝐓𝐎𝐊 𝐔𝐏𝐃𝐀𝐓𝐄𝐒\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD\n\n✨ Like karna mat bhulna!`,
-    `⚡ 𝑹𝑬𝑨𝑳 𝑶𝑾𝑵𝑬𝑹\n\n🔗 TikTok: https://tiktok.com/@sadboydj1\n👑 Bagga Sher MD\n\n🚀 Follow for daily updates!`,
-    `✨ 𝗕𝗔𝗚𝗚𝗔 𝗦𝗛𝗘𝗥 𝗠𝗗\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 TikTok official profile\n\n💫 Sabhi log visit karo!`,
-    `👑 𝗢𝗙𝗙𝗜𝗖𝗜𝗔𝗟 𝗧𝗜𝗞𝗧𝗢𝗞\n\n🔗 https://tiktok.com/@sadboydj1\n👤 Bagga Sher MD\n\n🚀 New updates ke liye follow karein!`,
-    `🔥 𝑩𝑶𝑻 𝑪𝑹𝑬𝑨𝑻𝑶𝑹\n\n🔗 https://tiktok.com/@sadboydj1\n✨ Bagga Sher MD\n\n💖 Like & Share!`,
-    `🌟 𝗧𝗜𝗞𝗧𝗢𝗞 𝗖𝗢𝗡𝗡𝗘𝗖𝗧𝗜𝗢𝗡\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Owner: Bagga Sher MD\n\n🚀 Follow fast!`,
-    `💥 𝓡𝓮𝓪𝓵 𝓢𝓾𝓹𝓹𝓸𝓻𝓽\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD\n\n✨ Naye bots ki update yahan milegi!`,
-    `⚡ 𝑶𝑭𝑭𝗜𝑪𝗜𝑨𝑳 𝑷𝑨𝗚𝑬\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Bagga Sher MD\n\n🚀 Follow & Like!`,
-    `✨ 𝑲𝑰𝑵𝑮 𝑶𝑭 𝑴𝑫\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD\n\n💫 Support karo sab log!`,
-    `📌 𝐓𝐈𝐊𝐓𝐎𝐊 𝐈𝐃\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Bagga Sher MD\n\n🚀 Latest updates ke liye!`,
-    `🔥 𝑩𝑨𝑮𝑮𝑨 𝑺𝑯𝑬𝑹 𝑴𝑫\n\n🔗 https://tiktok.com/@sadboydj1\n✨ Official TikTok Account\n\n💖 Follow lazmi hai!`,
-    `🌟 𝗢𝗙𝗙𝗜𝗖𝗜𝗔𝗟 𝗟𝗜𝗡𝗞\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Owner: Bagga Sher MD\n\n🚀 Like & Follow!`,
-    `💥 𝓝𝓮𝔀 𝓤𝓹𝓭𝓪𝓽𝓮𝓼\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD\n\n✨ Visit fast!`,
-    `⚡ 𝑹𝑬𝑨𝑳 𝑰𝑫\n\n🔗 https://tiktok.com/@sadboydj1\n👑 Owner: Bagga Sher MD\n\n🚀 Support the creator!`,
-    `✨ 𝗧𝗜𝗞𝗧𝗢𝗞 𝗦𝗣𝗢𝗧\n\n🔗 https://tiktok.com/@sadboydj1\n🔥 Bagga Sher MD\n\n💫 Follow for more!`,
-    `👑 𝑶𝑭𝑭𝗜𝑪𝗜𝗔𝑳 𝑨𝑪𝑪𝑶𝑼𝑵𝑻\n\n🔗 https://tiktok.com/@sadboydj1\n👤 Bagga Sher MD\n\n🚀 Like karein!`,
-    `🔥 𝑩𝑶𝑻 𝑶𝑾𝑵𝑬𝑹\n\n🔗 https://tiktok.com/@sadboydj1\n✨ Bagga Sher MD\n\n💖 Follow & Share!`,
-];
+const apiKey = "h1QtWouuuycfwXiB8xR7ytupRufcd26u";
 
-// Direct video links for .t command (Badmashi Type)
-const badmashiVideos = [
-    "https://example.com/badmashi1.mp4",
-    "https://example.com/badmashi2.mp4",
-    "https://example.com/badmashi3.mp4",
-    "https://example.com/badmashi4.mp4",
-    "https://example.com/badmashi5.mp4",
-];
-
-// Direct video links for .x command (Updated with your 4 new links)
-const danceVideos = [
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788580101346_CSwmugqJx.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788580361513_UNR1SGDYp.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788580368695_L-j-XZR5S.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788580375457_67fSEF8Q5.mp4"
-];
-
-// Direct video links for .v command (Your previous 9 links)
-const customVideos = [
-    "Https://ik.imagekit.io/kfyseccyf/SHABAN-1788579538798_B9SJlFwdN.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579524775_OsJZ7YKsS.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579514843_DCYXSfMxy.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579505269_wpJ10Zki0.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579489798_CnPqfL7Mk.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579479175_mM4ww7KO0.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579464218_75qSDHhB7.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579447001__GOtBMjyO.mp4",
-    "https://ik.imagekit.io/kfyseccyf/SHABAN-1788579433187_C9zQfk6oT.mp4"
-];
-
-// .t command (Badmashi type content)
+// 1. Love Command (Aapki original working command)
 cmd({
-    pattern: "t",
-    desc: "Send badmashi type video",
-    category: "download",
-    react: "😈",
-    filename: __filename,
-    use: ".t"
-}, async (conn, mek, m, { from, reply }) => {
+    pattern: "love",
+    alias: ["romance", "couple", "pyar", "hotlove"],
+    desc: "Get full romantic anime images",
+    category: "fun",
+    react: "❤️‍🔥",
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
     try {
-        await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+        let queries = ["couple", "kiss", "hug", "waifu", "neko"];
+        let randomQuery = queries[Math.floor(Math.random() * queries.length)];
+        
+        let apiUrl = `https://nekos.best/api/v2/search?query=${randomQuery}&type=1&amount=20`;
+        let response = await axios.get(apiUrl);
+        let data = response.data;
 
-        const videoUrl = badmashiVideos[Math.floor(Math.random() * badmashiVideos.length)];
-
-        if (!videoUrl || !videoUrl.startsWith('http')) {
-            return await reply(`❌ Video link is invalid!`);
+        if (!data || !data.results || data.results.length === 0) {
+            return reply("Error: Image nahi mili!");
         }
 
-        await conn.sendMessage(from, {
-            video: { url: videoUrl },
-            mimetype: 'video/mp4',
-            caption: `> Powered by TAGER-MD | Owner: Bagga Sher MD ✅`
-        }, { quoted: mek });
+        let randomIndex = Math.floor(Math.random() * data.results.length);
+        let imageUrl = data.results[randomIndex].url;
+        let artistName = data.results[randomIndex].artist_name || "Unknown";
 
-        const randomText = tiktokMessages[Math.floor(Math.random() * tiktokMessages.length)];
-        await conn.sendMessage(from, { text: randomText });
+        let caption = `❤️‍🔥 *FULL ROMANTIC MOOD* ❤️‍🔥\n\n✨ *Pyar Mohabbat* ✨\n*Artist:* ${artistName}\n\n🤖 *Bot:* TIGER MD\n👑 *Owner:* BAGGA SHER MD`;
 
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        return await conn.sendMessage(from, { image: { url: imageUrl }, caption: caption }, { quoted: mek });
 
     } catch (e) {
-        console.error("Error in .t:", e);
-        await reply("❌ An error occurred!");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        console.error('Error in love command:', e);
+        return reply(`❌ Error: ${e.message}`);
     }
 });
 
-// .x command (Girls dance content)
+// 2. Dance GIF Command
 cmd({
-    pattern: "x",
-    desc: "Send girls dance video",
-    category: "download",
+    pattern: "dance",
+    alias: ["dancegif"],
+    desc: "Get random dance GIFs",
+    category: "fun",
     react: "💃",
-    filename: __filename,
-    use: ".x"
-}, async (conn, mek, m, { from, reply }) => {
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
     try {
-        await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+        let apiUrl = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=dance&limit=50`;
+        let response = await axios.get(apiUrl);
+        let data = response.data;
 
-        const videoUrl = danceVideos[Math.floor(Math.random() * danceVideos.length)];
-
-        if (!videoUrl || !videoUrl.startsWith('http')) {
-            return await reply(`❌ Video link is invalid!`);
+        if (!data || !data.data || data.data.length === 0) {
+            return reply("❌ Error: GIF nahi mili!");
         }
 
-        await conn.sendMessage(from, {
-            video: { url: videoUrl },
-            mimetype: 'video/mp4',
-            caption: `> Powered by TAGER-MD | Owner: Bagga Sher MD ✅`
-        }, { quoted: mek });
+        let randomIndex = Math.floor(Math.random() * data.data.length);
+        let gifUrl = data.data[randomIndex].images.original.url;
 
-        const randomText = tiktokMessages[Math.floor(Math.random() * tiktokMessages.length)];
-        await conn.sendMessage(from, { text: randomText });
+        let caption = `💃 *DANCE GIF* 💃\n\n🤖 *Bot:* TIGER MD\n👑 *Owner:* BAGGA SHER MD`;
 
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        return await conn.sendMessage(from, { video: { url: gifUrl }, gifPlayback: true, caption: caption }, { quoted: mek });
 
     } catch (e) {
-        console.error("Error in .x:", e);
-        await reply("❌ An error occurred!");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        console.error('Error in dance command:', e);
+        return reply(`❌ Error: ${e.message}`);
     }
 });
 
-// .v command (Custom Type)
+// 3. Random GIF Command
 cmd({
-    pattern: "v",
-    desc: "Send custom video link",
-    category: "download",
+    pattern: "gif",
+    alias: ["giphy", "randomgif"],
+    desc: "Get random trending GIFs",
+    category: "fun",
     react: "🎬",
-    filename: __filename,
-    use: ".v"
-}, async (conn, mek, m, { from, reply }) => {
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, reply }) => {
     try {
-        await conn.sendMessage(from, { react: { text: '⏳', key: m.key } });
+        let apiUrl = `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=50`;
+        let response = await axios.get(apiUrl);
+        let data = response.data;
 
-        const videoUrl = customVideos[Math.floor(Math.random() * customVideos.length)];
-
-        if (!videoUrl || !videoUrl.startsWith('http')) {
-            return await reply(`❌ Video link is invalid!`);
+        if (!data || !data.data || data.data.length === 0) {
+            return reply("❌ Error: GIF nahi mili!");
         }
 
-        await conn.sendMessage(from, {
-            video: { url: videoUrl },
-            mimetype: 'video/mp4',
-            caption: `> Powered by TAGER-MD | Owner: Bagga Sher MD ✅`
-        }, { quoted: mek });
+        let randomIndex = Math.floor(Math.random() * data.data.length);
+        let gifUrl = data.data[randomIndex].images.original.url;
 
-        const randomText = tiktokMessages[Math.floor(Math.random() * tiktokMessages.length)];
-        await conn.sendMessage(from, { text: randomText });
+        let caption = `🎬 *RANDOM GIPHY* 🎬\n\n🤖 *Bot:* TIGER MD\n👑 *Owner:* BAGGA SHER MD`;
 
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        return await conn.sendMessage(from, { video: { url: gifUrl }, gifPlayback: true, caption: caption }, { quoted: mek });
 
     } catch (e) {
-        console.error("Error in .v:", e);
-        await reply("❌ An error occurred!");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        console.error('Error in gif command:', e);
+        return reply(`❌ Error: ${e.message}`);
     }
 });
