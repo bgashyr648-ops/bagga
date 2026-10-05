@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//           TIGER-MD - ULTIMATE UNIVERSAL OPEN & DOWNLOAD COMMAND
+//           Nobita-MD - ULTIMATE UNIVERSAL OPEN & DOWNLOAD COMMAND
 //---------------------------------------------------------------------------
 
 const { cmd } = require('../command');
@@ -32,7 +32,7 @@ cmd({
                 if (response.data && response.data.status && response.data.download && response.data.download.url) {
                     await conn.sendMessage(from, {
                         video: { url: response.data.download.url },
-                        caption: `🎬 *YouTube Video Downloaded Successfully!*\n\n> Powered by TIGER-MD`
+                        caption: `🎬 *YouTube Video Downloaded Successfully!*\n\n> Powered by Nobita-MD`
                     }, { quoted: mek });
                 } else {
                     await reply("❌ Failed to fetch video from YouTube API.");
@@ -49,7 +49,7 @@ cmd({
                 if (response.data && response.data.status && response.data.download_url) {
                     await conn.sendMessage(from, {
                         video: { url: response.data.download_url },
-                        caption: `🎬 *Social Media Video Downloaded Successfully!*\n\n> Powered by TIGER-MD`
+                        caption: `🎬 *Social Media Video Downloaded Successfully!*\n\n> Powered by Nobita-MD`
                     }, { quoted: mek });
                 } else {
                     await conn.sendMessage(from, {
@@ -58,20 +58,20 @@ cmd({
                 }
             } catch (err) {
                 await conn.sendMessage(from, {
-                    text: `🌐 *Social Media Link:*\n🔗 ${targetUrl}\n\n> Powered by TIGER-MD`
+                    text: `🌐 *Social Media Link:*\n🔗 ${targetUrl}\n\n> Powered by Nobita-MD`
                 }, { quoted: mek });
             }
         }
         else if (targetUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
             await conn.sendMessage(from, {
                 image: { url: targetUrl },
-                caption: `🖼️ *Image Opened Successfully!*\n\n> Powered by TIGER-MD`
+                caption: `🖼️ *Image Opened Successfully!*\n\n> Powered by Nobita-MD`
             }, { quoted: mek });
         } 
         else if (targetUrl.match(/\.(mp4|mkv|avi|mov|webm)$/i)) {
             await conn.sendMessage(from, {
                 video: { url: targetUrl },
-                caption: `🎬 *Video Opened Successfully!*\n\n> Powered by TIGER-MD`
+                caption: `🎬 *Video Opened Successfully!*\n\n> Powered by Nobita-MD`
             }, { quoted: mek });
         } 
         else if (targetUrl.match(/\.(mp3|wav|ogg|m4a)$/i)) {
@@ -97,7 +97,7 @@ cmd({
                     if (jsonText.length > 3000) jsonText = jsonText.substring(0, 3000) + "\n... (truncated)";
                     
                     await conn.sendMessage(from, {
-                        text: `🌐 *API / JSON Data Opened:*\n\`\`\`json\n${jsonText}\n\`\`\`\n\n> Powered by TIGER-MD`
+                        text: `🌐 *API / JSON Data Opened:*\n\`\`\`json\n${jsonText}\n\`\`\`\n\n> Powered by Nobita-MD`
                     }, { quoted: mek });
                 } else {
                     let htmlData = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
@@ -110,7 +110,7 @@ cmd({
                 }
             } catch (webErr) {
                 await conn.sendMessage(from, {
-                    text: `🌐 *Web Link Processed:*\n🔗 ${targetUrl}\n\n> Powered by TIGER-MD`
+                    text: `🌐 *Web Link Processed:*\n🔗 ${targetUrl}\n\n> Powered by Nobita-MD`
                 }, { quoted: mek });
             }
         }
