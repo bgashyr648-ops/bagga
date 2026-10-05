@@ -41,8 +41,8 @@ async (conn, mek, m, { from, quoted, sender, reply }) => {
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363411750982159@newsletter',
-                    newsletterName: "TlGER-MD",
+                    newsletterJid: '120363410899676732@newsletter',
+                    newsletterName: "Nobita-MD",
                     serverMessageId: 143
                 }
             }
@@ -79,7 +79,7 @@ async (conn, mek, m, { from, reply }) => {
 
         // Stylish formatted output
         const msg = `
-*╭┈──〔 ⚡ TlGER-MD Pɪɴɢ 〕─⊷*
+*╭┈──〔 ⚡ Nobita-MD Pɪɴɢ 〕─⊷*
 *├▢ 📶 Response:* ${ping} ms
 *├▢ 🧠 Status:* ${status}
 *├▢ 💫 Mode:* Active & Stable
