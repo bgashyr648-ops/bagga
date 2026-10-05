@@ -42,7 +42,7 @@ cmd({
 ┃◈└───────────┈⊷
 ╰──────────────┈⊷
 
-> *_POWERED BY LOVE-MD_*`;
+> *_POWERED BY Nobita-MD_*`;
 
         await reply(caption);
         await new Promise(resolve => setTimeout(resolve, 2000));
