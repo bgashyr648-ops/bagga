@@ -62,7 +62,7 @@ async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) 
             document: { url: downloadURL },
             mimetype: "video/mp4",
             fileName: `${title}.mp4`,
-            caption: `📄 *${title}*\n\n> Powered by TIGER-MD`
+            caption: `📄 *${title}*\n\n> Powered by Nobita-MD`
         }, { quoted: quotedMsg });
 
         if (global.gc) global.gc();
