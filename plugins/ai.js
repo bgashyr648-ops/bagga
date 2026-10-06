@@ -55,7 +55,7 @@ async (conn, mek, m, { from, q, reply }) => {
             from,
             {
                 video: { url: videoUrl },
-                caption: `💔 *Hamid-Fida SAD VIBES*\n🥺 *POWERED BY TIGER MD*`
+                caption: `💔 *Hamid-Fida SAD VIBES*\n🥺 *POWERED BY Nobita-MD*`
             },
             { quoted: mek }
         );
