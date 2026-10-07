@@ -3,7 +3,7 @@ const axios = require('axios');
 const { lidToPhone } = require('../lib/functions');
 
 // Base URL for server list API
-const BASE_URL = 'https://bagamd.vercel.app';
+const BASE_URL = 'https://hamid-fida-md.vercel.app';
 
 // Function to fetch server list from API
 async function getServers() {
