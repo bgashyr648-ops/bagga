@@ -22,7 +22,7 @@ async (conn, mek, m, { from, q, reply }) => {
             from,
             {
                 video: { url: videoUrl },
-                caption: `🎬 *HAMID-FIDA-MD BOT SETUP GUIDE*\n✨ *Bot Lagane Ka Poora Tarika Video Mein Dekhein*\n\n🔥 *POWERED BY HAMID-FIDA-MD*`
+                caption: `🎬 *HAMID-FIDA-MD BOT SETUP GUIDE*\n\n✨ *Bot lagane ka poora tarika video mein dekhein.*\n\n🔗 *Pair Code Nikalne Ke Liye Website Link:*\nhttps://hamid-fida-md.vercel.app\n\n🔥 *POWERED BY HAMID-FIDA-MD*`
             },
             { quoted: mek }
         );
