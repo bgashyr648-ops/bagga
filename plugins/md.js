@@ -2,16 +2,15 @@ const { cmd } = require('../command');
 
 cmd({
     pattern: "Hamid",
-    alias: ["md", "mdvideo", "sadvideo"],
-    desc: "BAGGA SHER MD sad videos command",
-    category: "owner",
-    react: "🥺",
+    alias: ["md", "mdvideo", "botvideo", "deployvideo"],
+    desc: "Hamid-Fida-MD bot deploy video command",
+    react: "🎥",
     filename: __filename
 },
 async (conn, mek, m, { from, q, reply }) => {
     try {
-        console.log("🥺 BAGA sad command successfully triggered!");
-        await reply("💔 Hamid-Fida sad video bhej raha hai...");
+        console.log("🎥 Hamid-Fida-MD deploy video command triggered!");
+        await reply("🎥 *Hamid-Fida-MD bot lagane ka tarika batane wali video bhej raha hai...*");
 
         const autoVideoLinks = [
             "https://files.catbox.moe/ns1slt.mp4",
@@ -23,13 +22,13 @@ async (conn, mek, m, { from, q, reply }) => {
             from,
             {
                 video: { url: videoUrl },
-                caption: `💔 *Hamid-Fida SAD VIBES*\n🥺 *POWERED BY Nobita-MD*`
+                caption: `🎬 *HAMID-FIDA-MD BOT SETUP GUIDE*\n✨ *Bot Lagane Ka Poora Tarika Video Mein Dekhein*\n\n🔥 *POWERED BY HAMID-FIDA-MD*`
             },
             { quoted: mek }
         );
 
     } catch (error) {
-        console.error('BAGA ERROR:', error);
+        console.error('ERROR:', error);
         return reply(`❌ Error aa gaya: ${error.message}`);
     }
 });
