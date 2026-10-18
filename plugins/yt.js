@@ -1,18 +1,7 @@
 const config = require('../config');
 const { cmd, commands } = require('../command');
 const axios = require('axios');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-
-const toSmallCaps = (text) => {
-    const map = {
-        'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ',
-        'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ',
-        'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ'
-    };
-    return text.split('').map(c => map[c.toLowerCase()] || c).join('');
-};
+const yts = require('yt-search');
 
 function getVideoId(url) {
     if (!url || typeof url !== 'string') return null;
@@ -34,14 +23,6 @@ function getVideoId(url) {
     return null;
 }
 
-const getAudioAPIs = (url) => [
-    { url: `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`, timeout: 35000 }
-];
-
-const getVideoAPIs = (url) => [
-    { url: `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`, timeout: 35000 }
-];
-
 function extractMediaUrl(data) {
     if (!data) return null;
     if (typeof data === 'string' && data.startsWith('http')) return data;
@@ -58,68 +39,18 @@ function extractMediaUrl(data) {
            (typeof data?.result === 'string' && data.result.startsWith('http') ? data.result : null);
 }
 
-async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) {
-    try {
-        await conn.sendMessage(from, {
-            document: { url: downloadURL },
-            mimetype: "video/mp4",
-            fileName: `${title}.mp4`,
-            caption: `📄 *${title}*\n\n> Powered by Nobita-MD`
-        }, { quoted: quotedMsg });
-
-        if (global.gc) global.gc();
-        return true;
-    } catch (e) {
-        console.error(`Document send failed:`, e.message);
-        return false;
-    }
-}
-
-async function handleVideoResponse(conn, from, quotedMsg, response, ytSearchTitle, asDocument = false) {
-    const data = response.data;
-    const videoUrl = extractMediaUrl(data);
-    
-    if (!videoUrl) return false;
-
-    const apiTitle = data?.download?.title || data?.result?.title || data?.title;
-    const title = (typeof apiTitle === 'string' && apiTitle.trim().length > 0)
-        ? apiTitle.trim()
-        : ytSearchTitle;
-
-    if (!title) return false;
-
-    if (data?.download?.urlx) {
-        return await saveAndSendAsDocument(conn, from, quotedMsg, data.download.urlx, title);
-    }
-
-    if (asDocument) {
-        await conn.sendMessage(from, {
-            document: { url: videoUrl },
-            mimetype: "video/mp4",
-            fileName: `${title}.mp4`,
-            caption: `📄 *${title}*\n📹 Video Document\n\n> Powered by Nobita-MD`
-        }, { quoted: quotedMsg });
-    } else {
-        await conn.sendMessage(from, {
-            video: { url: videoUrl },
-            caption: `🎬 *${title}*\n\n> Powered by Nobita-MD`
-        }, { quoted: quotedMsg });
-    }
-    return true;
-}
-
 cmd({
     pattern: "play",
-    alias: ["song", "music", "audio", "Play", "Play "],
+    alias: ["song", "music", "audio", "Play"],
+    use: '.play sad song',
     desc: "Download YouTube audio",
     category: "download",
     react: "🎧",
     filename: __filename
-}, async (conn, mek, m, { from, text, reply }) => {
+},
+async (conn, mek, m, { from, text, reply }) => {
     try {
-        if (!text) return reply("❌ Please provide song name\nExample: .play Shape of You");
-
-        const yts = require('yt-search');
+        if (!text) return reply("❌ Please provide a song name or link!\nExample: .play Shape of You");
 
         let url = text;
         let vid = null;
@@ -145,56 +76,45 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Views* - ${vid.views?.toLocaleString() \vert{}\vert{} 'N/A'}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading...\n╰━━❑━⪼\n> Powered by Nobita-MD`
+            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading Audio...\n╰━━❑━⪼\n> Powered by TlGER-MD`
         }, { quoted: mek });
 
-        let success = false;
-        const audioAPIs = getAudioAPIs(url);
+        const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`;
+        const response = await axios.get(apiUrl, { timeout: 35000 });
+        const audioUrl = extractMediaUrl(response.data);
 
-        for (const api of audioAPIs) {
-            if (success) break;
-            try {
-                const response = await axios.get(api.url, { timeout: api.timeout });
-                const audioUrl = extractMediaUrl(response.data);
-                
-                if (audioUrl) {
-                    await conn.sendMessage(from, {
-                        audio: { url: audioUrl },
-                        mimetype: "audio/mpeg",
-                        fileName: `${vid.title}.mp3`,
-                        ptt: false
-                    }, { quoted: mek });
-                    success = true;
-                    break;
-                }
-            } catch (e) {
-                console.error(`API failed (${api.url}):`, e.message);
-                continue;
-            }
+        if (!audioUrl) {
+            return reply("❌ Download failed from API. Try again later!");
         }
 
-        if (!success) return reply("❌ All download sources failed! Try again later.");
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        await conn.sendMessage(from, {
+            audio: { url: audioUrl },
+            mimetype: "audio/mpeg",
+            fileName: `${vid.title}.mp3`,
+            ptt: false
+        }, { quoted: mek });
+
+        await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
 
     } catch (err) {
         console.error("PLAY ERROR:", err);
-        reply("❌ Error occurred! Please try again later.");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+        reply(`❌ Error occurred: ${err.message}`);
+        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
     }
 });
 
 cmd({
     pattern: "video",
-    alias: ["ytv", "ytmp4", "vd", "Video", "Video "],
+    alias: ["ytv", "ytmp4", "vd", "Video"],
+    use: '.video sad song',
     desc: "Download YouTube video",
     category: "download",
     react: "📹",
     filename: __filename
-}, async (conn, mek, m, { from, text, reply }) => {
+},
+async (conn, mek, m, { from, text, reply }) => {
     try {
-        if (!text) return reply("🎥 Please provide a video name or link!\n\nExample: `.video Alone Marshmello`");
-
-        const yts = require('yt-search');
+        if (!text) return reply("🎥 Please provide a video name or link!\nExample: .video Alone Marshmello");
 
         let url = text;
         let vid = null;
@@ -220,298 +140,27 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name \vert{}\vert{} 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by Nobita-MD`
+            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by TlGER-MD`
         }, { quoted: mek });
 
-        let success = false;
-        const videoAPIs = getVideoAPIs(url);
+        const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
+        const response = await axios.get(apiUrl, { timeout: 35000 });
+        const videoUrl = extractMediaUrl(response.data);
 
-        for (const api of videoAPIs) {
-            if (success) break;
-            try {
-                const response = await axios.get(api.url, { timeout: api.timeout });
-                const ok = await handleVideoResponse(conn, from, mek, response, vid.title, false);
-                if (ok) success = true;
-            } catch (e) {
-                console.error(`API failed (${api.url}):`, e.message);
-                continue;
-            }
+        if (!videoUrl) {
+            return reply("❌ Video download failed from API. Try again later!");
         }
-
-        if (!success) return reply("❌ All video sources failed! Try again later.");
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
-
-    } catch (e) {
-        console.error("Error in .video command:", e);
-        reply("❌ Error occurred, please try again later!");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-    }
-});
-
-cmd({
-    pattern: "song",
-    alias: ["yt", "music", "ytdl"],
-    desc: "Download YouTube song or video (interactive)",
-    category: "download",
-    react: "🎧",
-    filename: __filename
-}, async (conn, mek, m, { from, text, reply }) => {
-    try {
-        if (!text) return reply("🎶 Please provide a YouTube video name or link.\n\nExample: `.song Alone - Alan Walker`");
-
-        const yts = require('yt-search');
-
-        let vid = null;
-
-        if (text.startsWith('http://') || text.startsWith('https://')) {
-            if (!text.includes("youtube.com") && !text.includes("youtu.be")) {
-                return reply("❌ Please provide a valid YouTube URL!");
-            }
-            const videoId = getVideoId(text);
-            if (!videoId) return reply("❌ Invalid YouTube URL!");
-            vid = await yts({ videoId: videoId });
-        } else {
-            const search = await yts(text);
-            if (!search || !search.videos || !search.videos.length) {
-                return reply("❌ No results found!");
-            }
-            vid = search.videos[0];
-        }
-
-        if (!vid) return reply("❌ No results found!");
-
-        const caption = `*╭┈───〔 ${toSmallCaps('YT Downloader')} 〕┈───⊷*
-*├▢ 🎬 Title:* ${vid.title}
-*├▢ 📺 Channel:* ${vid.author?.name || 'Unknown'}
-*├▢ ⏰ Duration:* ${vid.timestamp}
-*├▢ 👀 Views:* ${vid.views?.toLocaleString() || 'N/A'}
-*╰───────────────────⊷*
-*╭───⬡ ${toSmallCaps('Select Format')} ⬡───*
-*┋ ⬡ 1* 🎧 ${toSmallCaps('Audio (MP3)')}
-*┋ ⬡ 2* 📹 ${toSmallCaps('Video (MP4)')}
-*┋ ⬡ 3* 📄 ${toSmallCaps('Audio as Document')}
-*┋ ⬡ 4* 📄 ${toSmallCaps('Video as Document')}
-*╰───────────────────⊷*
-
-> Powered by Nobita-MD`;
-
-        const sent = await conn.sendMessage(from, {
-            image: { url: vid.thumbnail },
-            caption
-        }, { quoted: mek });
-
-        const msgId = sent.key.id;
-
-        const songListener = async (msgData) => {
-            const received = msgData.messages[0];
-            if (!received.message) return;
-
-            const selected = received.message.conversation || received.message.extendedTextMessage?.text;
-            const replyToBot = received.message.extendedTextMessage?.contextInfo?.stanzaId === msgId;
-
-            if (replyToBot) {
-                conn.ev.off("messages.upsert", songListener);
-                await conn.sendMessage(from, { react: { text: '⬇️', key: received.key } });
-
-                const cleanSelect = selected?.trim();
-
-                if (cleanSelect === "1" || cleanSelect === "2" || cleanSelect === "3" || cleanSelect === "4") {
-                    const type = cleanSelect === "1" || cleanSelect === "3" ? "mp3" : "mp4";
-                    const asDocument = cleanSelect === "3" || cleanSelect === "4";
-
-                    if (type === "mp3") {
-                        let success = false;
-                        const audioAPIs = getAudioAPIs(vid.url);
-
-                        for (const api of audioAPIs) {
-                            if (success) break;
-                            try {
-                                const response = await axios.get(api.url, { timeout: api.timeout });
-                                const audioUrl = extractMediaUrl(response.data);
-
-                                if (audioUrl) {
-                                    if (asDocument) {
-                                        await conn.sendMessage(from, {
-                                            document: { url: audioUrl },
-                                            mimetype: "audio/mpeg",
-                                            fileName: `${vid.title}.mp3`,
-                                            caption: `📄 *${vid.title}*\n🎧 Audio Document\n\n> Powered by Nobita-MD`
-                                        }, { quoted: received });
-                                    } else {
-                                        await conn.sendMessage(from, {
-                                            audio: { url: audioUrl },
-                                            mimetype: "audio/mpeg",
-                                            fileName: `${vid.title}.mp3`,
-                                            ptt: false
-                                        }, { quoted: received });
-                                    }
-                                    success = true;
-                                    break;
-                                }
-                            } catch (e) {
-                                console.error(`API failed (${api.url}):`, e.message);
-                                continue;
-                            }
-                        }
-
-                        if (!success) {
-                            return await conn.sendMessage(from, {
-                                text: "❌ All audio sources failed! Try again later."
-                            }, { quoted: received });
-                        }
-
-                    } else {
-                        let success = false;
-                        const videoAPIs = getVideoAPIs(vid.url);
-
-                        for (const api of videoAPIs) {
-                            if (success) break;
-                            try {
-                                const response = await axios.get(api.url, { timeout: api.timeout });
-                                const ok = await handleVideoResponse(conn, from, received, response, vid.title, asDocument);
-                                if (ok) success = true;
-                            } catch (e) {
-                                console.error(`API failed (${api.url}):`, e.message);
-                                continue;
-                            }
-                        }
-
-                        if (!success) {
-                            return await conn.sendMessage(from, {
-                                text: "❌ All video sources failed! Try again later."
-                            }, { quoted: received });
-                        }
-                    }
-
-                    await conn.sendMessage(from, { react: { text: '✅', key: received.key } });
-                } else {
-                    await conn.sendMessage(from, {
-                        text: `❌ *Invalid selection!*\nPlease reply with:\n1️⃣ for Audio (MP3)\n2️⃣ for Video (MP4)\n3️⃣ for Audio as Document\n4️⃣ for Video as Document`
-                    }, { quoted: received });
-                }
-            }
-        };
-
-        conn.ev.on("messages.upsert", songListener);
-        setTimeout(() => { conn.ev.off("messages.upsert", songListener); }, 30000);
-
-    } catch (e) {
-        console.error(e);
-        reply(`❌ Error: ${e.message}`);
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-    }
-});
-
-cmd({
-    pattern: "cartoon",
-    alias: ["toon", "kids"],
-    desc: "Download YouTube cartoon video",
-    category: "download",
-    react: "🧸",
-    filename: __filename
-}, async (conn, mek, m, { from, text, reply }) => {
-    try {
-        if (!text) return reply("🧸 Please provide a cartoon name!\n\nExample: `.cartoon Tom and Jerry`");
-
-        const yts = require('yt-search');
-
-        let url = text;
-        let vid = null;
-
-        if (text.startsWith('http://') || text.startsWith('https://')) {
-            if (!text.includes("youtube.com") && !text.includes("youtu.be")) {
-                return reply("❌ Please provide a valid YouTube URL!");
-            }
-            const videoId = getVideoId(text);
-            if (!videoId) return reply("❌ Invalid YouTube URL!");
-            const searchFromUrl = await yts({ videoId: videoId });
-            vid = searchFromUrl;
-        } else {
-            const search = await yts(`${text} cartoon`);
-            if (!search || !search.videos || !search.videos.length) {
-                return reply("❌ No cartoon results found!");
-            }
-            vid = search.videos[0];
-            url = vid.url;
-        }
-
-        if (!vid) return reply("❌ No results found!");
 
         await conn.sendMessage(from, {
-            image: { url: vid.thumbnail },
-            caption: `*🧸 CARTOON DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name \vert{}\vert{} 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Cartoon...\n\n> Powered by Nobita-MD`
+            video: { url: videoUrl },
+            caption: `🎬 *${vid.title}*\n\n> Powered by TlGER-MD`
         }, { quoted: mek });
 
-        let success = false;
-        const videoAPIs = getVideoAPIs(url);
-
-        for (const api of videoAPIs) {
-            if (success) break;
-            try {
-                const response = await axios.get(api.url, { timeout: api.timeout });
-                const ok = await handleVideoResponse(conn, from, mek, response, vid.title, false);
-                if (ok) success = true;
-            } catch (e) {
-                console.error(`API failed (${api.url}):`, e.message);
-                continue;
-            }
-        }
-
-        if (!success) return reply("❌ All video sources failed! Try again later.");
-        await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
+        await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
 
     } catch (e) {
-        console.error("Error in .cartoon command:", e);
-        reply("❌ Error occurred, please try again later!");
-        await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-    }
-});
-
-cmd({
-    pattern: "yts",
-    alias: ["ytsearch", "searchyt"],
-    use: '.yts jawad',
-    react: "🔎",
-    desc: "Search YouTube and get video details",
-    category: "search",
-    filename: __filename
-},
-async (conn, mek, m, { from, text, reply }) => {
-    try {
-        if (!text) return reply('*Please provide search words!*\n\nExample: .yts Alan Walker Faded');
-
-        const yts = require('yt-search');
-
-        const search = await yts(text);
-
-        if (!search.videos || !search.videos.length) {
-            return reply('*No results found!*');
-        }
-
-        const results = search.videos.slice(0, 10);
-
-        let mesaj = `*╭┈───〔 ${toSmallCaps('YouTube Search')} 〕┈───⊷*\n`;
-        mesaj += `*├▢ 🔎 Query:* ${text}\n`;
-        mesaj += `*├▢ 📊 Results:* ${search.videos.length}\n`;
-        mesaj += `*╰───────────────────⊷*\n\n`;
-
-        results.forEach((video, i) => {
-            mesaj += `*${i + 1}.${video.title}*\n`;
-            mesaj += `*├▢ 🔗 URL:* ${video.url}\n`;
-            mesaj += `*├▢ ⏱️ Duration:* ${video.timestamp}\n`;
-            mesaj += `*├▢ 👀 Views:* ${video.views?.toLocaleString() || 'N/A'}\n`;
-            mesaj += `*├▢ 👤 Channel:* ${video.author?.name || 'Unknown'}\n`;
-            mesaj += `*╰───────────────────⊷*\n\n`;
-        });
-
-        mesaj += `*╭───⬡ ${toSmallCaps('Powered By')} ⬡───*\n`;
-        mesaj += `*┋ ⬡ ${toSmallCaps('Nobita-MD')}*\n`;
-        mesaj += `*╰───────────────────⊷*`;
-
-        await conn.sendMessage(from, { text: mesaj.trim() }, { quoted: mek });
-
-    } catch (e) {
-        console.error('Error in yts command:', e);
-        reply(`*Error occurred while searching!*\n\`\`\`${e.message}\`\`\``);
+        console.error("Error in video command:", e);
+        reply(`❌ Error occurred: ${e.message}`);
+        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
     }
 });
