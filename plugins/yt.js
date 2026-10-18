@@ -76,11 +76,14 @@ async (conn, mek, m, { from, text, reply }) => {
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading Audio...\n╰━━❑━⪼\n> Powered by TlGER-MD`
+            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading Audio...\n╰━━❑━⪼\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, { timeout: 35000 });
+        const response = await axios.get(apiUrl, { 
+            timeout: 35000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        });
         const audioUrl = extractMediaUrl(response.data);
 
         if (!audioUrl) {
@@ -140,11 +143,14 @@ async (conn, mek, m, { from, text, reply }) => {
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by TlGER-MD`
+            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
-        const response = await axios.get(apiUrl, { timeout: 35000 });
+        const response = await axios.get(apiUrl, { 
+            timeout: 35000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+        });
         const videoUrl = extractMediaUrl(response.data);
 
         if (!videoUrl) {
@@ -153,7 +159,7 @@ async (conn, mek, m, { from, text, reply }) => {
 
         await conn.sendMessage(from, {
             video: { url: videoUrl },
-            caption: `🎬 *${vid.title}*\n\n> Powered by TlGER-MD`
+            caption: `🎬 *${vid.title}*\n\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
