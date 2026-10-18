@@ -80,10 +80,7 @@ async (conn, mek, m, { from, text, reply }) => {
         }, { quoted: mek });
 
         const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl, { 
-            timeout: 35000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-        });
+        const response = await axios.get(apiUrl);
         const audioUrl = extractMediaUrl(response.data);
 
         if (!audioUrl) {
@@ -147,10 +144,7 @@ async (conn, mek, m, { from, text, reply }) => {
         }, { quoted: mek });
 
         const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
-        const response = await axios.get(apiUrl, { 
-            timeout: 35000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-        });
+        const response = await axios.get(apiUrl);
         const videoUrl = extractMediaUrl(response.data);
 
         if (!videoUrl) {
