@@ -74,7 +74,8 @@ async (conn, mek, m, { from, text, reply }) => {
             if (!search || !search.videos || !search.videos.length) {
                 return reply("❌ No song found!");
             }
-            vid = search.videos[0];
+            const validVideo = search.videos.find(v => v.seconds < 900) || search.videos[0];
+            vid = validVideo;
             url = vid.url;
         }
 
@@ -137,7 +138,8 @@ async (conn, mek, m, { from, text, reply }) => {
             if (!search || !search.videos || !search.videos.length) {
                 return reply("❌ No video results found!");
             }
-            vid = search.videos[0];
+            const validVideo = search.videos.find(v => v.seconds < 900) || search.videos[0];
+            vid = validVideo;
             url = vid.url;
         }
 
