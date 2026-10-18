@@ -35,12 +35,28 @@ function getVideoId(url) {
 }
 
 const getAudioAPIs = (url) => [
-    { url: `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`, timeout: 25000 }
+    { url: `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`, timeout: 35000 }
 ];
 
 const getVideoAPIs = (url) => [
-    { url: `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`, timeout: 25000 }
+    { url: `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`, timeout: 35000 }
 ];
+
+function extractMediaUrl(data) {
+    if (!data) return null;
+    if (typeof data === 'string' && data.startsWith('http')) return data;
+    
+    return data?.download?.url || 
+           data?.result?.downloadUrl || 
+           data?.result?.url || 
+           data?.result?.download ||
+           data?.url || 
+           data?.data?.dl_link || 
+           data?.data?.url ||
+           data?.downloadUrl ||
+           data?.link || 
+           (typeof data?.result === 'string' && data.result.startsWith('http') ? data.result : null);
+}
 
 async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) {
     try {
@@ -54,15 +70,16 @@ async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) 
         if (global.gc) global.gc();
         return true;
     } catch (e) {
-        console.error(`⚠️ Document send failed:`, e.message);
+        console.error(`Document send failed:`, e.message);
         return false;
     }
 }
 
 async function handleVideoResponse(conn, from, quotedMsg, response, ytSearchTitle, asDocument = false) {
     const data = response.data;
-    const videoUrl = data?.download?.url || data?.result?.downloadUrl || data?.result?.url || data?.url || data?.data?.dl_link || data?.result;
-    if (!videoUrl || typeof videoUrl !== 'string') return false;
+    const videoUrl = extractMediaUrl(data);
+    
+    if (!videoUrl) return false;
 
     const apiTitle = data?.download?.title || data?.result?.title || data?.title;
     const title = (typeof apiTitle === 'string' && apiTitle.trim().length > 0)
@@ -93,7 +110,7 @@ async function handleVideoResponse(conn, from, quotedMsg, response, ytSearchTitl
 
 cmd({
     pattern: "play",
-    alias: ["song", "music", "audio"],
+    alias: ["song", "music", "audio", "Play", "Play "],
     desc: "Download YouTube audio",
     category: "download",
     react: "🎧",
@@ -138,8 +155,7 @@ cmd({
             if (success) break;
             try {
                 const response = await axios.get(api.url, { timeout: api.timeout });
-                const resData = response.data;
-                const audioUrl = resData?.download?.url || resData?.result?.downloadUrl || resData?.result?.url || resData?.url || resData?.data?.dl_link;
+                const audioUrl = extractMediaUrl(response.data);
                 
                 if (audioUrl) {
                     await conn.sendMessage(from, {
@@ -152,7 +168,7 @@ cmd({
                     break;
                 }
             } catch (e) {
-                console.error(`⚠️ API failed (${api.url}):`, e.message);
+                console.error(`API failed (${api.url}):`, e.message);
                 continue;
             }
         }
@@ -161,7 +177,7 @@ cmd({
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
 
     } catch (err) {
-        console.error("❌ PLAY ERROR:", err);
+        console.error("PLAY ERROR:", err);
         reply("❌ Error occurred! Please try again later.");
         await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
     }
@@ -169,7 +185,7 @@ cmd({
 
 cmd({
     pattern: "video",
-    alias: ["ytv", "ytmp4", "vd"],
+    alias: ["ytv", "ytmp4", "vd", "Video", "Video "],
     desc: "Download YouTube video",
     category: "download",
     react: "📹",
@@ -217,7 +233,7 @@ cmd({
                 const ok = await handleVideoResponse(conn, from, mek, response, vid.title, false);
                 if (ok) success = true;
             } catch (e) {
-                console.error(`⚠️ API failed (${api.url}):`, e.message);
+                console.error(`API failed (${api.url}):`, e.message);
                 continue;
             }
         }
@@ -311,8 +327,7 @@ cmd({
                             if (success) break;
                             try {
                                 const response = await axios.get(api.url, { timeout: api.timeout });
-                                const resData = response.data;
-                                const audioUrl = resData?.download?.url || resData?.result?.downloadUrl || resData?.result?.url || resData?.url || resData?.data?.dl_link;
+                                const audioUrl = extractMediaUrl(response.data);
 
                                 if (audioUrl) {
                                     if (asDocument) {
@@ -334,7 +349,7 @@ cmd({
                                     break;
                                 }
                             } catch (e) {
-                                console.error(`⚠️ API failed (${api.url}):`, e.message);
+                                console.error(`API failed (${api.url}):`, e.message);
                                 continue;
                             }
                         }
@@ -356,7 +371,7 @@ cmd({
                                 const ok = await handleVideoResponse(conn, from, received, response, vid.title, asDocument);
                                 if (ok) success = true;
                             } catch (e) {
-                                console.error(`⚠️ API failed (${api.url}):`, e.message);
+                                console.error(`API failed (${api.url}):`, e.message);
                                 continue;
                             }
                         }
@@ -437,7 +452,7 @@ cmd({
                 const ok = await handleVideoResponse(conn, from, mek, response, vid.title, false);
                 if (ok) success = true;
             } catch (e) {
-                console.error(`⚠️ API failed (${api.url}):`, e.message);
+                console.error(`API failed (${api.url}):`, e.message);
                 continue;
             }
         }
