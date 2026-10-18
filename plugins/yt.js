@@ -39,6 +39,13 @@ function extractMediaUrl(data) {
            (typeof data?.result === 'string' && data.result.startsWith('http') ? data.result : null);
 }
 
+const getHeaders = () => ({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://google.com'
+});
+
 cmd({
     pattern: "play",
     alias: ["song", "music", "audio", "Play"],
@@ -61,8 +68,7 @@ async (conn, mek, m, { from, text, reply }) => {
             }
             const videoId = getVideoId(text);
             if (!videoId) return reply("❌ Invalid YouTube URL!");
-            const searchFromUrl = await yts({ videoId: videoId });
-            vid = searchFromUrl;
+            vid = await yts({ videoId: videoId });
         } else {
             const search = await yts(text);
             if (!search || !search.videos || !search.videos.length) {
@@ -80,7 +86,7 @@ async (conn, mek, m, { from, text, reply }) => {
         }, { quoted: mek });
 
         const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`;
-        const response = await axios.get(apiUrl);
+        const response = await axios.get(apiUrl, { headers: getHeaders(), timeout: 45000 });
         const audioUrl = extractMediaUrl(response.data);
 
         if (!audioUrl) {
@@ -125,8 +131,7 @@ async (conn, mek, m, { from, text, reply }) => {
             }
             const videoId = getVideoId(text);
             if (!videoId) return reply("❌ Invalid YouTube URL!");
-            const searchFromUrl = await yts({ videoId: videoId });
-            vid = searchFromUrl;
+            vid = await yts({ videoId: videoId });
         } else {
             const search = await yts(text);
             if (!search || !search.videos || !search.videos.length) {
@@ -144,7 +149,7 @@ async (conn, mek, m, { from, text, reply }) => {
         }, { quoted: mek });
 
         const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
-        const response = await axios.get(apiUrl);
+        const response = await axios.get(apiUrl, { headers: getHeaders(), timeout: 45000 });
         const videoUrl = extractMediaUrl(response.data);
 
         if (!videoUrl) {
