@@ -5,8 +5,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const API_BASE = "https://husnain-zmjm.vercel.app";
-
 const toSmallCaps = (text) => {
     const map = {
         'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ',
@@ -37,25 +35,13 @@ function getVideoId(url) {
 }
 
 const getAudioAPIs = (url) => [
-    { url: `${API_BASE}/yta8?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta9?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta7?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta6?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta1?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta2?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta3?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta4?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/yta5?url=${encodeURIComponent(url)}`, timeout: 25000 }
+    { url: `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`, timeout: 25000 }
 ];
 
 const getVideoAPIs = (url) => [
-    { url: `${API_BASE}/ytv3?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/ytdl?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/ytv1?url=${encodeURIComponent(url)}`, timeout: 25000 },
-    { url: `${API_BASE}/ytv2?url=${encodeURIComponent(url)}`, timeout: 25000 }
+    { url: `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`, timeout: 25000 }
 ];
 
-// Direct host — no GET method, no stream
 async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) {
     try {
         await conn.sendMessage(from, {
@@ -75,38 +61,34 @@ async function saveAndSendAsDocument(conn, from, quotedMsg, downloadURL, title) 
 
 async function handleVideoResponse(conn, from, quotedMsg, response, ytSearchTitle, asDocument = false) {
     const data = response.data;
-    if (!data?.status || !data?.download) return false;
+    const videoUrl = data?.download?.url || data?.result?.downloadUrl || data?.result?.url || data?.url || data?.data?.dl_link || data?.result;
+    if (!videoUrl || typeof videoUrl !== 'string') return false;
 
-    const apiTitle = data.download.title;
+    const apiTitle = data?.download?.title || data?.result?.title || data?.title;
     const title = (typeof apiTitle === 'string' && apiTitle.trim().length > 0)
         ? apiTitle.trim()
         : ytSearchTitle;
 
     if (!title) return false;
 
-    if (data.download.urlx) {
+    if (data?.download?.urlx) {
         return await saveAndSendAsDocument(conn, from, quotedMsg, data.download.urlx, title);
     }
 
-    if (data.download.url) {
-        const videoUrl = data.download.url;
-        if (asDocument) {
-            await conn.sendMessage(from, {
-                document: { url: videoUrl },
-                mimetype: "video/mp4",
-                fileName: `${title}.mp4`,
-                caption: `📄 *${title}*\n📹 Video Document\n\n> Powered by Nobita-MD`
-            }, { quoted: quotedMsg });
-        } else {
-            await conn.sendMessage(from, {
-                video: { url: videoUrl },
-                caption: `🎬 *${title}*\n\n> Powered by Nobita-MD`
-            }, { quoted: quotedMsg });
-        }
-        return true;
+    if (asDocument) {
+        await conn.sendMessage(from, {
+            document: { url: videoUrl },
+            mimetype: "video/mp4",
+            fileName: `${title}.mp4`,
+            caption: `📄 *${title}*\n📹 Video Document\n\n> Powered by Nobita-MD`
+        }, { quoted: quotedMsg });
+    } else {
+        await conn.sendMessage(from, {
+            video: { url: videoUrl },
+            caption: `🎬 *${title}*\n\n> Powered by Nobita-MD`
+        }, { quoted: quotedMsg });
     }
-
-    return false;
+    return true;
 }
 
 cmd({
@@ -146,7 +128,7 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Views* - ${vid.views?.toLocaleString() || 'N/A'}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading...\n╰━━❑━⪼\n> Powered by Nobita-MD`
+            caption: `- *AUDIO DOWNLOADER 🎧*\n╭━━❐━⪼\n┇๏ *Title* - ${vid.title}\n┇๏ *Duration* - ${vid.timestamp}\n┇๏ *Views* - ${vid.views?.toLocaleString() \vert{}\vert{} 'N/A'}\n┇๏ *Author* - ${vid.author?.name || 'Unknown'}\n┇๏ *Status* - Downloading...\n╰━━❑━⪼\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         let success = false;
@@ -156,9 +138,9 @@ cmd({
             if (success) break;
             try {
                 const response = await axios.get(api.url, { timeout: api.timeout });
-                const audioUrl = response.data?.status && response.data?.download?.url
-                    ? response.data.download.url
-                    : null;
+                const resData = response.data;
+                const audioUrl = resData?.download?.url || resData?.result?.downloadUrl || resData?.result?.url || resData?.url || resData?.data?.dl_link;
+                
                 if (audioUrl) {
                     await conn.sendMessage(from, {
                         audio: { url: audioUrl },
@@ -222,7 +204,7 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by Nobita-MD`
+            caption: `*🎬 VIDEO DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name \vert{}\vert{} 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Video...\n\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         let success = false;
@@ -329,9 +311,9 @@ cmd({
                             if (success) break;
                             try {
                                 const response = await axios.get(api.url, { timeout: api.timeout });
-                                const audioUrl = response.data?.status && response.data?.download?.url
-                                    ? response.data.download.url
-                                    : null;
+                                const resData = response.data;
+                                const audioUrl = resData?.download?.url || resData?.result?.downloadUrl || resData?.result?.url || resData?.url || resData?.data?.dl_link;
+
                                 if (audioUrl) {
                                     if (asDocument) {
                                         await conn.sendMessage(from, {
@@ -442,7 +424,7 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*🧸 CARTOON DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name || 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Cartoon...\n\n> Powered by Nobita-MD`
+            caption: `*🧸 CARTOON DOWNLOADER*\n\n🎞️ *Title:* ${vid.title}\n📺 *Channel:* ${vid.author?.name \vert{}\vert{} 'Unknown'}\n🕒 *Duration:* ${vid.timestamp}\n\n*Status:* Downloading Cartoon...\n\n> Powered by Nobita-MD`
         }, { quoted: mek });
 
         let success = false;
@@ -499,7 +481,7 @@ async (conn, mek, m, { from, text, reply }) => {
         mesaj += `*╰───────────────────⊷*\n\n`;
 
         results.forEach((video, i) => {
-            mesaj += `*${i + 1}. ${video.title}*\n`;
+            mesaj += `*${i + 1}.${video.title}*\n`;
             mesaj += `*├▢ 🔗 URL:* ${video.url}\n`;
             mesaj += `*├▢ ⏱️ Duration:* ${video.timestamp}\n`;
             mesaj += `*├▢ 👀 Views:* ${video.views?.toLocaleString() || 'N/A'}\n`;
