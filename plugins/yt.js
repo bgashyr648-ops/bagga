@@ -245,7 +245,7 @@ cmd({
         const DESCRIPTION =
             userConfig?.DESCRIPTION || config.DESCRIPTION || '';
 
-        const caption = `*╭─❍══ ⃟ ⃟ ⃟   𝙽𝙰𝚆𝙰𝚉 𝙼𝙳   ⃟ ⃟ ⃟══⊷❍*
+        const caption = `*╭─❍══ ⃟ ⃟ ⃟   Nobita-MD   ⃟ ⃟ ⃟══⊷❍*
 
 ┇◆╭┉┉┉┉┉┉┉┉┉┉━┈⊷
 ┇◆┋🎬 𝐕𝐈𝐃𝐄𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄Ր
