@@ -68,7 +68,7 @@ cmd({
 
         await conn.sendMessage(from, {
             image: { url: vid.thumbnail },
-            caption: `*╭─❍══ ⃟ ⃟ ⃟   Nobita MD  ⃟ ⃟ ⃟══⊷❍*
+            caption: `*╭─❍══ ⃟ ⃟ ⃟   Nobita-MD  ⃟ ⃟ ⃟══⊷❍*
 
 ┇◆╭┉┉┉┉┉┉┉┉┉┉━┈⊷
 ┇◆┋🎧 𝐀𝐔𝐃𝐈𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑
