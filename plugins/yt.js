@@ -1,86 +1,149 @@
+// plugins/video.js - CommonJS Version
 const config = require('../config');
-const { cmd, commands } = require('../command');
+const { cmd } = require('../command');
 const axios = require('axios');
 const yts = require('yt-search');
 
 const MAX_FILE_SIZE = 95 * 1024 * 1024;
 
+function normalizeYouTubeUrl(url) {
+    const match = url.match(
+        /(?:youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/.*[?&]v=)([a-zA-Z0-9_-]{11})/
+    );
+
+    return match
+        ? `https://youtube.com/watch?v=${match[1]}`
+        : null;
+}
+
 const AXIOS_CONFIG = {
     timeout: 30000,
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*'
     }
 };
 
-const NEWSLETTER_CONTEXT = {
-    forwardingScore: 999,
-    isForwarded: true,
-    forwardedNewsletterMessageInfo: {
-        newsletterJid: '120363410899676732@newsletter',
-        newsletterName: "Nobita-MD",
-        serverMessageId: 143
-    }
-};
-
-function normalizeYouTubeUrl(url) {
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/.*[?&]v=)([a-zA-Z0-9_-]{11})/);
-    return match ? `https://youtube.com/watch?v=${match[1]}` : null;
-}
-
-function extractDownloadUrl(data, type = 'video') {
+function extractDownloadUrl(data) {
     if (!data) return null;
+
     const result = data.result || data.data || data;
 
     if (typeof result === 'string' && result.startsWith('http')) {
         return result;
     }
 
-    if (type === 'audio') {
-        return result?.mp3 || result?.audio || result?.download_url || result?.download || result?.url || result?.link || data?.download_url || data?.url || null;
-    } else {
-        return result?.mp4 || result?.download_url || result?.download || result?.url || result?.link || result?.video || result?.video_url || data?.download_url || data?.url || null;
+    return (
+        result?.mp4 ||
+        result?.download_url ||
+        result?.download ||
+        result?.url ||
+        result?.link ||
+        result?.video ||
+        result?.video_url ||
+        data?.download_url ||
+        data?.url ||
+        null
+    );
+}
+
+// 1. Dark Shan API
+async function darkShanAPI(url) {
+    const apiUrl =
+        `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
+
+    const response = await axios.get(apiUrl, AXIOS_CONFIG);
+    const data = response.data;
+
+    const videoUrl = extractDownloadUrl(data);
+
+    if (!videoUrl) {
+        throw new Error('Dark Shan: video URL not found');
     }
+
+    const result = data.result || data.data || {};
+
+    return {
+        video_url: videoUrl,
+        title: result?.title || data?.title || 'YouTube Video'
+    };
 }
 
-// ==================== API CALL FUNCTIONS ====================
+// 2. CypherX API
+async function cypherXAPI(url) {
+    const apiUrl =
+        `https://media.cypherxbot.space/download/youtube/video?url=${encodeURIComponent(url)}`;
 
-// Audio API 1 (EliteProTech)
-async function eliteProTechAudioAPI(url) {
-    const apiUrl = `https://eliteprotech-apis.zone.id/download/ytmp3?url=${encodeURIComponent(url)}`;
     const response = await axios.get(apiUrl, AXIOS_CONFIG);
     const data = response.data;
-    const audioUrl = extractDownloadUrl(data, 'audio');
 
-    if (!audioUrl) throw new Error('EliteProTech Audio: URL not found');
-    return { audio_url: audioUrl, title: data?.result?.title || data?.title || 'Nobita-MD Audio' };
+    if (!data?.success || !data?.result?.download_url) {
+        throw new Error('CypherX: video URL not found');
+    }
+
+    return {
+        video_url: data.result.download_url,
+        title: data.result.title || 'YouTube Video'
+    };
 }
 
-// Audio API 2 (Dark Shan Audio)
-async function darkShanAudioAPI(url) {
-    const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
+// 3. PrinceTech API
+async function princeTechAPI(url) {
+    const apiUrl =
+        `https://api.princetechn.com/api/download/ytvideo?url=${encodeURIComponent(url)}&apikey=prince`;
+
     const response = await axios.get(apiUrl, AXIOS_CONFIG);
     const data = response.data;
-    const audioUrl = extractDownloadUrl(data, 'audio');
 
-    if (!audioUrl) throw new Error('Dark Shan Audio: URL not found');
-    return { audio_url: audioUrl, title: data?.result?.title || data?.title || 'Nobita-MD Audio' };
+    if (!data?.success || !data?.result?.download_url) {
+        throw new Error('PrinceTech: video URL not found');
+    }
+
+    return {
+        video_url: data.result.download_url,
+        title: data.result.title || 'YouTube Video'
+    };
 }
 
-// Video API 1 (Dark Shan Video)
-async function darkShanVideoAPI(url) {
-    const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(url)}&apikey=72209ca3742e5a36`;
-    const response = await axios.get(apiUrl, AXIOS_CONFIG);
-    const data = response.data;
-    const videoUrl = extractDownloadUrl(data, 'video');
+// 4. Keith / David APIs
+async function keithAPI(url) {
+    const apis = [
+        `https://apiskeith.top/download/video?url=${encodeURIComponent(url)}`,
+        `https://apiskeith.top/download/ytmp4?url=${encodeURIComponent(url)}`,
+        `https://apis.davidcyril.name.ng/download/ytmp4?url=${encodeURIComponent(url)}`,
+        `https://apis.davidcyril.name.ng/youtube/mp4?url=${encodeURIComponent(url)}`
+    ];
 
-    if (!videoUrl) throw new Error('Dark Shan Video: URL not found');
-    return { video_url: videoUrl, title: data?.result?.title || data?.title || 'Nobita-MD Video' };
+    let lastError;
+
+    for (const apiUrl of apis) {
+        try {
+            const response = await axios.get(apiUrl, AXIOS_CONFIG);
+            const data = response.data;
+
+            const videoUrl = extractDownloadUrl(data);
+
+            if (!videoUrl) continue;
+
+            const result = data.result || data.data || {};
+
+            return {
+                video_url: videoUrl,
+                title: result?.title || data?.title || 'YouTube Video'
+            };
+
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error('Keith/David APIs failed');
 }
 
-// Media Buffer Downloader
-async function downloadMediaBuffer(mediaUrl) {
-    const response = await axios.get(mediaUrl, {
+// Download video buffer
+async function downloadVideo(videoUrl) {
+    const response = await axios.get(videoUrl, {
         responseType: 'arraybuffer',
         timeout: 120000,
         maxContentLength: MAX_FILE_SIZE,
@@ -88,197 +151,174 @@ async function downloadMediaBuffer(mediaUrl) {
     });
 
     const buffer = Buffer.from(response.data);
-    if (!buffer.length) throw new Error('Empty media buffer');
-    if (buffer.length > MAX_FILE_SIZE) throw new Error('File size exceeds WhatsApp limit');
+
+    if (!buffer.length) {
+        throw new Error('Empty video file');
+    }
+
+    if (buffer.length > MAX_FILE_SIZE) {
+        throw new Error('Video file too large');
+    }
+
     return buffer;
 }
 
-// Fetch Audio with Fallback
-async function fetchAudioData(url) {
+// Multiple API fallback fetcher
+async function fetchDownloadData(url) {
     const apis = [
-        { name: 'EliteProTech Audio', fn: () => eliteProTechAudioAPI(url) },
-        { name: 'Dark Shan Audio', fn: () => darkShanAudioAPI(url) }
+        { name: 'Dark Shan', fn: () => darkShanAPI(url) },
+        { name: 'CypherX', fn: () => cypherXAPI(url) },
+        { name: 'PrinceTech', fn: () => princeTechAPI(url) },
+        { name: 'Keith / David', fn: () => keithAPI(url) }
     ];
 
     let lastError;
-    for (const api of apis) {
-        try {
-            console.log(`[AUDIO] Trying ${api.name}...`);
-            const data = await api.fn();
-            if (data?.audio_url) return data;
-        } catch (err) {
-            lastError = err;
-            console.log(`[AUDIO] ❌ ${api.name} failed:`, err?.message || err);
-        }
-    }
-    throw lastError || new Error('All Audio APIs failed');
-}
 
-// Fetch Video with Fallback
-async function fetchVideoData(url) {
-    const apis = [
-        { name: 'Dark Shan Video', fn: () => darkShanVideoAPI(url) }
-    ];
-
-    let lastError;
     for (const api of apis) {
         try {
             console.log(`[VIDEO] Trying ${api.name}...`);
             const data = await api.fn();
-            if (data?.video_url) return data;
-        } catch (err) {
-            lastError = err;
-            console.log(`[VIDEO] ❌ ${api.name} failed:`, err?.message || err);
+
+            if (data?.video_url) {
+                console.log(`[VIDEO] ✅ ${api.name} resolved video`);
+                return data;
+            }
+        } catch (error) {
+            lastError = error;
+            console.log(`[VIDEO] ❌ ${api.name} failed:`, error?.message || error);
         }
     }
-    throw lastError || new Error('All Video APIs failed');
+
+    throw lastError || new Error('All download APIs failed');
 }
 
-// ==================== 1. AUDIO COMMAND (.song) ====================
+// ==================== YOUTUBE VIDEO COMMAND ====================
+
 cmd({
-    pattern: "song",
-    alias: ["play", "ytmp3", "audio"],
-    use: '.song <song name / link>',
-    desc: "Download YouTube Audio (MP3)",
-    category: "download",
-    react: "🎶",
+    pattern: 'video',
+    alias: ['ytmp4', 'vdl'],
+    desc: 'Download YouTube video',
+    category: 'download',
+    react: '🔁',
+    use: '.video <video name or YouTube URL>',
     filename: __filename
-},
-async (conn, mek, m, { from, q, reply, prefix, command, sender }) => {
+}, async (conn, mek, m, { from, text, reply, userConfig }) => {
     try {
-        if (!q) {
-            return reply(`⚠️ *Usage:* ${prefix + command} song name or link`);
+        if (!text) {
+            return reply(
+                '❌ Please provide video name or link\nExample: .video Shape of You'
+            );
         }
 
-        await conn.sendMessage(from, { react: { text: "🔍", key: mek.key } });
+        await conn.sendMessage(from, {
+            react: { text: '🔍', key: m.key }
+        });
 
-        const normalizedUrl = normalizeYouTubeUrl(q);
+        const normalizedUrl = normalizeYouTubeUrl(text.trim());
         let ytdata;
 
         if (normalizedUrl) {
-            const videoId = normalizedUrl.split("v=")[1];
+            const videoId = normalizedUrl.split('v=')[1];
             try {
                 ytdata = await yts({ videoId });
             } catch {
-                ytdata = { url: normalizedUrl, title: "YouTube Audio", timestamp: "Unknown" };
+                ytdata = {
+                    url: normalizedUrl,
+                    title: 'YouTube Video',
+                    timestamp: 'N/A'
+                };
             }
         } else {
-            const searchResults = await yts(q);
-            if (!searchResults.videos?.length) {
-                return reply("❌ *No song found on YouTube!*");
+            const searchResults = await yts(text.trim());
+
+            if (!searchResults?.videos?.length) {
+                return reply('❌ No video found!');
             }
+
             ytdata = searchResults.videos[0];
         }
 
-        const targetUrl = normalizedUrl || ytdata.url;
+        if (!ytdata) {
+            return reply('❌ No video found!');
+        }
 
-        const caption = `
-╭┈──〔 ⚡ *NOBITA-MD AUDIO* 〕─⊷
-├▢ 🎬 *Title:* ${ytdata.title}
-├▢ 📺 *Channel:* ${ytdata.author?.name || 'Unknown'}
-├▢ ⏱️ *Duration:* ${ytdata.timestamp || 'Unknown'}
-├▢ 🎵 *Format:* Audio (MP3)
-╰───────────────────────────⊷
-> 📥 *Downloading audio, please wait...*`;
+        const DESCRIPTION =
+            userConfig?.DESCRIPTION || config.DESCRIPTION || '';
+
+        const caption = `*╭─❍══ ⃟ ⃟ ⃟   𝙽𝙰𝚆𝙰𝚉 𝙼𝙳   ⃟ ⃟ ⃟══⊷❍*
+
+┇◆╭┉┉┉┉┉┉┉┉┉┉━┈⊷
+┇◆┋🎬 𝐕𝐈𝐃𝐄𝐎 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄Ր
+┇◆┋
+┇◆┋🎵 Title: ${ytdata.title}
+┇◆┋⏱️ Duration: ${ytdata.timestamp || 'N/A'}
+┇◆┋👀 Views: ${ytdata.views?.toLocaleString() || 'N/A'}
+┇◆┋📺 Author: ${ytdata.author?.name || 'Unknown'}
+┇◆┋📥 Status: Downloading...
+┇◆╰┉┉┉┉┉┉┉┉┉┉┉┉┉━┈⊷
+╰═══════════════════⍟
+
+> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ NobitaMD
+
+${DESCRIPTION}`;
 
         await conn.sendMessage(from, {
             image: { url: ytdata.thumbnail || ytdata.image },
-            caption: caption.trim(),
-            contextInfo: { ...NEWSLETTER_CONTEXT, mentionedJid: [sender] }
+            caption
         }, { quoted: mek });
-
-        await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
-
-        const audioData = await fetchAudioData(targetUrl);
-        const audioBuffer = await downloadMediaBuffer(audioData.audio_url);
 
         await conn.sendMessage(from, {
-            audio: audioBuffer,
-            mimetype: "audio/mpeg",
-            ptt: false,
-            contextInfo: { ...NEWSLETTER_CONTEXT, mentionedJid: [sender] }
-        }, { quoted: mek });
-
-        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
-
-    } catch (e) {
-        console.error("Error in song command:", e);
-        await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
-        reply(`⚠️ *Error:* ${e.message || "Unable to download audio"}`);
-    }
-});
-
-// ==================== 2. VIDEO COMMAND (.video) ====================
-cmd({
-    pattern: "video",
-    alias: ["vdl", "ytmp4"],
-    use: '.video <video name / link>',
-    desc: "Download YouTube Video (MP4)",
-    category: "download",
-    react: "🎬",
-    filename: __filename
-},
-async (conn, mek, m, { from, q, reply, prefix, command, sender }) => {
-    try {
-        if (!q) {
-            return reply(`⚠️ *Usage:* ${prefix + command} video name or link`);
-        }
-
-        await conn.sendMessage(from, { react: { text: "🔍", key: mek.key } });
-
-        const normalizedUrl = normalizeYouTubeUrl(q);
-        let ytdata;
-
-        if (normalizedUrl) {
-            const videoId = normalizedUrl.split("v=")[1];
-            try {
-                ytdata = await yts({ videoId });
-            } catch {
-                ytdata = { url: normalizedUrl, title: "YouTube Video", timestamp: "Unknown" };
-            }
-        } else {
-            const searchResults = await yts(q);
-            if (!searchResults.videos?.length) {
-                return reply("❌ *No video found on YouTube!*");
-            }
-            ytdata = searchResults.videos[0];
-        }
+            react: { text: '⏳', key: m.key }
+        });
 
         const targetUrl = normalizedUrl || ytdata.url;
+        let dlData;
 
-        const caption = `
-╭┈──〔 ⚡ *NOBITA-MD VIDEO* 〕─⊷
-├▢ 🎬 *Title:* ${ytdata.title}
-├▢ 📺 *Channel:* ${ytdata.author?.name || 'Unknown'}
-├▢ ⏱️ *Duration:* ${ytdata.timestamp || 'Unknown'}
-├▢ 🎥 *Format:* Video (MP4)
-╰───────────────────────────⊷
-> 📥 *Downloading video, please wait...*`;
+        try {
+            dlData = await fetchDownloadData(targetUrl);
+        } catch (error) {
+            console.log('[VIDEO] ALL APIs FAILED:', error?.message || error);
+            return reply('❌ All video download sources are currently unavailable. Please try again.');
+        }
 
-        await conn.sendMessage(from, {
-            image: { url: ytdata.thumbnail || ytdata.image },
-            caption: caption.trim(),
-            contextInfo: { ...NEWSLETTER_CONTEXT, mentionedJid: [sender] }
-        }, { quoted: mek });
+        if (!dlData?.video_url) {
+            return reply('❌ Video link not found or expired!');
+        }
 
-        await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
+        let videoBuffer;
 
-        const videoData = await fetchVideoData(targetUrl);
-        const videoBuffer = await downloadMediaBuffer(videoData.video_url);
+        try {
+            videoBuffer = await downloadVideo(dlData.video_url);
+        } catch (err) {
+            console.log('VIDEO DOWNLOAD ERROR:', err?.message || err);
+
+            if (/large|size/i.test(err?.message || '')) {
+                return reply('📦 Video is too large to send on WhatsApp.');
+            }
+
+            return reply('❌ Video download failed. The download link may have expired.');
+        }
 
         await conn.sendMessage(from, {
             video: videoBuffer,
-            mimetype: "video/mp4",
-            caption: `🎬 *${videoData.title || ytdata.title}*\n\n> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝙽𝙾𝙱𝙸𝚃𝙰-𝙼𝙳`,
-            contextInfo: { ...NEWSLETTER_CONTEXT, mentionedJid: [sender] }
+            mimetype: 'video/mp4',
+            caption: `🎬 *${dlData.title || ytdata.title}*`
         }, { quoted: mek });
 
-        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+        await conn.sendMessage(from, {
+            react: { text: '✅', key: m.key }
+        });
 
-    } catch (e) {
-        console.error("Error in video command:", e);
-        await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
-        reply(`⚠️ *Error:* ${e.message || "Unable to download video"}`);
+    } catch (error) {
+        console.error(
+            '❌ VIDEO COMMAND ERROR:',
+            error.response?.data || error.message
+        );
+
+        await conn.sendMessage(from, {
+            react: { text: '❌', key: m.key }
+        });
+
+        await reply('⚠️ Something went wrong!');
     }
 });
-        
