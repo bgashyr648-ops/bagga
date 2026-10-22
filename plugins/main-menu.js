@@ -20,11 +20,11 @@ const toSmallCaps = (text) => {
     return text.split('').map(char => smallCapsMap[char] || char).join('');
 };
 
-// Format category with your exact styles
+// Format category
 const formatCategory = (category, cmds) => {
     const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
-    if (validCmds.length === 0) return ''; 
-    
+    if (validCmds.length === 0) return '';
+
     let title = `\n\`『 ${toSmallCaps(category.toUpperCase())} 』\`\n╭───────────────────⊷\n`;
     let body = validCmds.map(cmd => {
         const commandName = cmd.pattern || '';
@@ -34,35 +34,32 @@ const formatCategory = (category, cmds) => {
     return `${title}${body}${footer}`;
 };
 
-// Function to validate image URL
-const isValidImageUrl = (url) => {
-    if (!url || typeof url !== 'string' || url.trim() === '') {
-        return false;
-    }
-    const urlLower = url.toLowerCase();
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    return imageExtensions.some(ext => urlLower.endsWith(ext));
-};
+// RAW image URL
+const BOT_IMAGE = "https://raw.githubusercontent.com/bgashyr648-ops/dp/main/ns.jpg";
 
 cmd({
     pattern: "menu",
-    alias: ["m", "help", "allmenu","fullmenu"],
+    alias: ["m", "help", "allmenu", "fullmenu"],
     use: '.menu',
     desc: "Show all bot commands",
     category: "main",
     react: "⚡",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, userConfig }) => {
+async (conn, mek, m, {
+    from, quoted, body, isCmd, command, args, q, isGroup,
+    sender, senderNumber, botNumber2, botNumber, pushname,
+    isMe, isOwner, groupMetadata, groupName, participants,
+    groupAdmins, isBotAdmins, isAdmins, reply, userConfig
+}) => {
     try {
         await conn.sendPresenceUpdate('composing', from);
-        
+
         let totalCommands = Object.keys(commands).length;
-        
-        const categories = [...new Set(Object.values(commands).map(c => c.category))].filter(cat => 
-            cat && cat.trim() !== '' && cat !== 'undefined'
-        );
-        
+
+        const categories = [...new Set(Object.values(commands).map(c => c.category))]
+            .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined');
+
         const categorized = {};
         categories.forEach(cat => {
             const categoryCommands = Object.values(commands).filter(c => c.category === cat);
@@ -88,9 +85,7 @@ async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sen
         const MODE = userConfig?.MODE || config.MODE || "private";
         const VERSION = userConfig?.VERSION || config.VERSION || "1.0.0";
         const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";
-        
-        const BOT_IMAGE = userConfig?.BOT_IMAGE || userConfig?.BOT_MEDIA_URL || config.BOT_IMAGE || config.BOT_MEDIA_URL;
-        
+
         let dec = `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
 *├▢ 🤖 ${toSmallCaps('Owner')}:* ${OWNER_NAME}
 *├▢ 📜 ${toSmallCaps('Commands')}:* ${totalCommands}
@@ -103,39 +98,43 @@ ${menuSections}
 
 > ${DESCRIPTION || ''}`;
 
-        // Dynamic Image Priority Logic
+        // Download image from RAW URL, then send it with the menu
         let imageToUse;
-        const localImagePath = path.join(__dirname, '../lib/bot.png');
-        
-        if (global.menuImageBuffer) {
-            imageToUse = global.menuImageBuffer;
-        } else if (fs.existsSync(localImagePath)) {
-            imageToUse = fs.readFileSync(localImagePath);
-        } else if (isValidImageUrl(BOT_IMAGE)) {
-            try {
-                await axios.head(BOT_IMAGE, { timeout: 3000 });
-                imageToUse = { url: BOT_IMAGE };
-            } catch (serverError) {
-                imageToUse = { url: BOT_IMAGE };
-            }
-        } else {
-            imageToUse = { url: BOT_IMAGE };
+
+        try {
+            const response = await axios.get(BOT_IMAGE, {
+                responseType: 'arraybuffer',
+                timeout: 15000
+            });
+            imageToUse = Buffer.from(response.data);
+        } catch (imageError) {
+            console.error('Menu image download failed:', imageError.message);
+            imageToUse = null;
         }
 
-        await conn.sendMessage(from, { 
-            image: imageToUse,
-            caption: dec, 
-            contextInfo: { 
-                mentionedJid: [m.sender], 
-                forwardingScore: 999, 
-                isForwarded: true, 
-                forwardedNewsletterMessageInfo: { 
-                    newsletterJid: '120363410899676732@newsletter', 
-                    newsletterName: BOT_NAME, 
-                    serverMessageId: 143 
-                } 
-            } 
-        }, { quoted: mek });
+        if (imageToUse) {
+            await conn.sendMessage(from, {
+                image: imageToUse,
+                caption: dec,
+                contextInfo: {
+                    mentionedJid: [m.sender],
+                    forwardingScore: 999,
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: '120363410899676732@newsletter',
+                        newsletterName: BOT_NAME,
+                        serverMessageId: 143
+                    }
+                }
+            }, { quoted: mek });
+        } else {
+            await conn.sendMessage(from, {
+                text: dec + '\n\n⚠️ Menu image could not be downloaded.',
+                contextInfo: {
+                    mentionedJid: [m.sender]
+                }
+            }, { quoted: mek });
+        }
 
         setTimeout(async () => {
             try {
@@ -152,8 +151,8 @@ ${menuSections}
             }
         }, 1000);
 
-    } catch (e) { 
-        console.log(e); 
-        reply(`Error: ${e}`); 
-    } 
+    } catch (e) {
+        console.log(e);
+        reply(`Error: ${e}`);
+    }
 });
