@@ -1,10 +1,11 @@
 // plugins/mention.js
-// Nobita MD - GitHub Audio Voice Note
+// GitHub Random Voice Note
 // Command: .g
 
 const { cmd } = require('../command');
 const config = require('../config');
 const axios = require('axios');
+const ffmpegPath = require('ffmpeg-static');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs');
@@ -28,7 +29,7 @@ async function getAudioFile() {
         });
 
         if (!Array.isArray(response.data)) {
-            throw new Error('GitHub audio list is invalid.');
+            throw new Error('GitHub repository response invalid');
         }
 
         audioFiles = response.data.filter(file =>
@@ -41,20 +42,18 @@ async function getAudioFile() {
     }
 
     if (!audioFiles.length) {
-        throw new Error('No audio files found in GitHub repository.');
+        throw new Error('No supported audio files found in GitHub repository');
     }
 
-    let available = audioFiles.filter(
+    let choices = audioFiles.filter(
         file => file.download_url !== lastUrl
     );
 
-    if (!available.length) available = audioFiles;
+    if (!choices.length) choices = audioFiles;
 
-    const file = available[
-        Math.floor(Math.random() * available.length)
-    ];
-
+    const file = choices[Math.floor(Math.random() * choices.length)];
     lastUrl = file.download_url;
+
     return file;
 }
 
@@ -65,23 +64,33 @@ async function downloadAudio(url) {
         maxContentLength: 30 * 1024 * 1024
     });
 
-    return Buffer.from(response.data);
+    const buffer = Buffer.from(response.data);
+
+    if (!buffer.length) {
+        throw new Error('Downloaded audio is empty');
+    }
+
+    return buffer;
 }
 
-async function convertToVoiceNote(inputBuffer) {
+async function convertToVoiceNote(buffer) {
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+        throw new Error('ffmpeg-static binary is unavailable');
+    }
+
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const inputFile = path.join(os.tmpdir(), `nobita-${id}.input`);
     const outputFile = path.join(os.tmpdir(), `nobita-${id}.ogg`);
 
     try {
-        fs.writeFileSync(inputFile, inputBuffer);
+        fs.writeFileSync(inputFile, buffer);
 
-        // FFmpeg detects the input format automatically.
-        await execFileAsync('ffmpeg', [
+        await execFileAsync(ffmpegPath, [
             '-hide_banner',
             '-loglevel', 'error',
             '-y',
             '-i', inputFile,
+            '-map', '0:a:0',
             '-vn',
             '-ac', '1',
             '-ar', '48000',
@@ -95,8 +104,9 @@ async function convertToVoiceNote(inputBuffer) {
             maxBuffer: 2 * 1024 * 1024
         });
 
-        if (!fs.existsSync(outputFile) || fs.statSync(outputFile).size < 100) {
-            throw new Error('FFmpeg did not create a valid voice note.');
+        if (!fs.existsSync(outputFile) ||
+            fs.statSync(outputFile).size < 100) {
+            throw new Error('Converted voice note is empty');
         }
 
         return fs.readFileSync(outputFile);
@@ -113,8 +123,8 @@ async function sendRandomVoice(conn, chatId, quoted) {
     await conn.sendPresenceUpdate('recording', chatId);
 
     const file = await getAudioFile();
-    const downloaded = await downloadAudio(file.download_url);
-    const voice = await convertToVoiceNote(downloaded);
+    const original = await downloadAudio(file.download_url);
+    const voice = await convertToVoiceNote(original);
 
     await conn.sendMessage(
         chatId,
@@ -144,14 +154,14 @@ cmd({
 
         await sendRandomVoice(conn, m.chat, m);
     } catch (error) {
-        console.error('Mention audio error:', error.message);
+        console.error('Mention audio error:', error);
     }
 });
 
-// .g command
+// Only command: .g
 cmd({
     pattern: 'g',
-    desc: 'Send a random playable GitHub voice note',
+    desc: 'Send a random GitHub voice note',
     category: 'other',
     react: '🎵',
     filename: __filename
@@ -162,7 +172,8 @@ cmd({
         console.error('.g audio error:', error);
 
         await reply(
-            '❌ Voice note convert nahi ho saki. Server par FFmpeg aur libopus support check karein.'
+            '❌ Audio error: ' +
+            (error.message || 'Voice note could not be converted.')
         );
     }
 });
