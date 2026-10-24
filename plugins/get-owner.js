@@ -33,7 +33,7 @@ cmd({
 }, async (sock, m, msg, { from, q, reply }) => {
   try {
     if (!q) {
-      return reply("⚠️ *Usage:* `.setowner 923001234567` ya `.setowner 923001234567|Owner Name`");
+      return reply("⚠️ *Usage:* `.setowner 92xxxxxx` ya `.setowner 92xxxxxx|Owner Name`");
     }
 
     let input = q.trim();
@@ -49,7 +49,7 @@ cmd({
     }
 
     if (!newNumber || newNumber.length < 8) {
-      return reply("❌ *Galt Number!* Sahi WhatsApp number likhein (e.g. 923001234567).");
+      return reply("❌ *Galt Number!* Sahi WhatsApp number likhein (e.g. 92xxxxxx).");
     }
 
     const customOwnerData = {
