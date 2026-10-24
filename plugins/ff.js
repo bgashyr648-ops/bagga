@@ -2,9 +2,9 @@ const config = require('../config');
 const { cmd, commands } = require('../command');
 
 cmd({
-    pattern: "vote",
-    alias: ["autovote", "pvote"],
-    use: '.vote 1',
+    pattern: "pvote",
+    alias: ["autovote", "votecast"],
+    use: '.pvote 1',
     desc: "Auto Cast Vote on Channel/Group Poll.",
     category: "tools",
     react: "🗳️",
@@ -14,12 +14,12 @@ async (conn, mek, m, { from, quoted, sender, reply, args }) => {
     try {
         // Step 1: Check if replied to a poll message
         if (!quoted) {
-            return reply("⚠️ *Nobita-MD Helper:* Bhai jis poll par vote dalna hai, pehle us message ko **Reply (Quote)** karke command do!");
+            return reply("⚠️ *Nobita-MD Helper:* Please reply to a poll message to cast your vote!");
         }
 
         // Step 2: Check option number
         if (!args[0]) {
-            return reply("⚠️ *Nobita-MD Helper:* Option number bhi likho!\n\n*Example:* `.vote 1` ya `.vote 2`");
+            return reply("⚠️ *Nobita-MD Helper:* Please specify the option number!\n\n*Example:* `.pvote 1` or `.pvote 2`");
         }
 
         const optionIndex = parseInt(args[0]) - 1;
@@ -28,13 +28,13 @@ async (conn, mek, m, { from, quoted, sender, reply, args }) => {
         const pollCreationMsg = quoted.pollCreationMessage || quoted.message?.pollCreationMessage;
 
         if (!pollCreationMsg) {
-            return reply("❌ *Nobita-MD Error:* Yeh message Poll nahi hai! Kisi Poll message ko reply karein.");
+            return reply("❌ *Nobita-MD Error:* This message is not a poll! Please reply to a valid poll message.");
         }
 
         // Step 4: Extract Poll Options
         const pollOptions = pollCreationMsg.options;
         if (!pollOptions || !pollOptions[optionIndex]) {
-            return reply(`❌ *Nobita-MD Error:* Galat option number! Is poll mein sirf **${pollOptions ? pollOptions.length : 0}** options hain.`);
+            return reply(`❌ *Nobita-MD Error:* Invalid option number! This poll only has **${pollOptions ? pollOptions.length : 0}** options.`);
         }
 
         const selectedOptionName = pollOptions[optionIndex].optionName;
