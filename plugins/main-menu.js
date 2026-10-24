@@ -1,47 +1,90 @@
-const config = require('../config')
+const config = require('../config');
 const { cmd, commands } = require('../command');
 const path = require('path');
-const os = require("os")
 const fs = require('fs');
-const {runtime} = require('../lib/functions')
-const axios = require('axios')
+const { runtime } = require('../lib/functions');
+const axios = require('axios');
 
-// Helper function for small caps text
+// Small caps text
 const toSmallCaps = (text) => {
     if (!text || typeof text !== 'string') return '';
-    const smallCapsMap = {
-        'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ',
-        'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ',
-        's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
-        'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ',
-        'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ',
-        'S': 's', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
+
+    const map = {
+        a:'ᴀ',b:'ʙ',c:'ᴄ',d:'ᴅ',e:'ᴇ',f:'ғ',g:'ɢ',h:'ʜ',i:'ɪ',
+        j:'ᴊ',k:'ᴋ',l:'ʟ',m:'ᴍ',n:'ɴ',o:'ᴏ',p:'ᴘ',q:'ǫ',r:'ʀ',
+        s:'s',t:'ᴛ',u:'ᴜ',v:'ᴠ',w:'ᴡ',x:'x',y:'ʏ',z:'ᴢ'
     };
-    return text.split('').map(char => smallCapsMap[char] || char).join('');
+
+    return text.split('').map(char => map[char.toLowerCase()] || char).join('');
 };
 
 // Format category
 const formatCategory = (category, cmds) => {
-    const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
-    if (validCmds.length === 0) return '';
+    const validCmds = cmds.filter(
+        c => c.pattern && c.pattern.trim() !== ''
+    );
 
-    let title = `\n\`『 ${toSmallCaps(category.toUpperCase())} 』\`\n╭───────────────────⊷\n`;
-    let body = validCmds.map(cmd => {
-        const commandName = cmd.pattern || '';
-        return `*┋ ⬡ ${toSmallCaps(commandName)}*`;
-    }).join('\n');
-    let footer = `\n╰───────────────────⊷`;
-    return `${title}${body}${footer}`;
+    if (!validCmds.length) return '';
+
+    const title =
+        `\n\`『 ${toSmallCaps(category.toUpperCase())} 』\`\n` +
+        `╭───────────────────⊷\n`;
+
+    const body = validCmds.map(c =>
+        `*┋ ⬡ ${toSmallCaps(c.pattern)}*`
+    ).join('\n');
+
+    return `${title}${body}\n╰───────────────────⊷`;
 };
 
-// Paths & Default Images
-const BOT_IMAGE = "https://raw.githubusercontent.com/bgashyr648-ops/dp/main/ns.jpg";
-const CUSTOM_DP_PATH = path.join(__dirname, '../lib/custom_dp.jpg');
-const CUSTOM_VOICE_PATH = path.join(__dirname, '../lib/custom_menu_voice.mp3');
-const DEFAULT_VOICE_PATH = path.join(__dirname, '../lib/love.mp3');
+// Paths
+const BOT_IMAGE =
+    "https://raw.githubusercontent.com/bgashyr648-ops/dp/main/ns.jpg";
+
+const LIB_PATH = path.join(__dirname, '../lib');
+const CUSTOM_DP_PATH = path.join(LIB_PATH, 'custom_dp.jpg');
+const CUSTOM_VOICE_PATH = path.join(LIB_PATH, 'custom_menu_voice.mp3');
+const VOICE_META_PATH = CUSTOM_VOICE_PATH + '.json';
+const DEFAULT_VOICE_PATH = path.join(LIB_PATH, 'love.mp3');
+
+fs.mkdirSync(LIB_PATH, { recursive: true });
+
+// Download media and always return a Buffer
+async function getMediaBuffer(conn, quoted) {
+    if (!quoted) {
+        throw new Error('Reply to an image, audio or voice note first.');
+    }
+
+    // Pass the complete quoted object to the existing bot helper.
+    const result = await conn.downloadAndSaveMediaMessage(quoted);
+
+    if (Buffer.isBuffer(result) && result.length) {
+        return result;
+    }
+
+    if (
+        typeof result === 'string' &&
+        fs.existsSync(result) &&
+        fs.statSync(result).isFile()
+    ) {
+        const buffer = fs.readFileSync(result);
+
+        // Remove temporary downloaded file after reading it.
+        if (path.resolve(result) !== path.resolve(CUSTOM_DP_PATH) &&
+            path.resolve(result) !== path.resolve(CUSTOM_VOICE_PATH)) {
+            try {
+                fs.unlinkSync(result);
+            } catch (_) {}
+        }
+
+        if (buffer.length) return buffer;
+    }
+
+    throw new Error('Media download failed or returned empty data.');
+}
 
 // ==========================================
-// 1. SET MENU DP COMMAND (.dp)
+// 1. SET MENU DP (.dp)
 // ==========================================
 cmd({
     pattern: "dp",
@@ -52,30 +95,38 @@ cmd({
     react: "🖼️",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, reply }) => {
+async (conn, mek, m, { quoted, reply }) => {
     try {
-        const mime = quoted?.mtype || m.mtype;
-        if (!quoted || !/image/.test(mime)) {
-            return reply("⚠️ Please reply to an image with *.dp* to set your custom Menu DP!");
+        if (!quoted) {
+            return reply(
+                "⚠️ Kisi image par reply karke .dp likhein!"
+            );
         }
 
-        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
-        if (!mediaBuffer) {
-            return reply("❌ Failed to download image. Try again.");
-        }
+        const mediaBuffer = await getMediaBuffer(conn, quoted);
 
-        fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
-        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+        // Atomic replacement prevents an incomplete custom image.
+        const tempPath = CUSTOM_DP_PATH + '.tmp';
 
-        return reply("✅ *Aapki Bot Menu DP Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par wahi nayi photo aayegi.");
+        fs.writeFileSync(tempPath, mediaBuffer);
+        fs.renameSync(tempPath, CUSTOM_DP_PATH);
+
+        return reply(
+            "✅ *Bot Menu DP Successfully Changed!*\n\n" +
+            "Ab `.m` ya `.menu` likh kar check karein."
+        );
+
     } catch (e) {
-        console.error('Error setting DP:', e);
-        reply(`Error setting DP: ${e.message || e}`);
+        console.error('SET DP ERROR:', e);
+
+        return reply(
+            `❌ DP change nahi hui: ${e.message || e}`
+        );
     }
 });
 
 // ==========================================
-// 2. SET MENU VOICE COMMAND (.setvoice)
+// 2. SET MENU VOICE (.setvoice)
 // ==========================================
 cmd({
     pattern: "setvoice",
@@ -86,30 +137,53 @@ cmd({
     react: "🎙️",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, reply }) => {
+async (conn, mek, m, { quoted, reply }) => {
     try {
-        const mime = quoted?.mtype || m.mtype;
-        if (!quoted || (!/audio/.test(mime) && !/voice/.test(mime))) {
-            return reply("⚠️ Please reply to an audio or voice note with *.setvoice*!");
+        if (!quoted) {
+            return reply(
+                "⚠️ Audio ya voice note par reply karke .setvoice likhein!"
+            );
         }
 
-        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
-        if (!mediaBuffer) {
-            return reply("❌ Failed to download audio. Try again.");
-        }
+        const mediaBuffer = await getMediaBuffer(conn, quoted);
 
-        fs.copyFileSync(mediaBuffer, CUSTOM_VOICE_PATH);
-        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+        // Preserve the original MIME type when available.
+        const mimeType =
+            quoted.mimetype ||
+            quoted.msg?.mimetype ||
+            quoted.message?.audioMessage?.mimetype ||
+            quoted.message?.documentMessage?.mimetype ||
+            "audio/mpeg";
 
-        return reply("✅ *Aapki Bot Menu Voice Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par yahi naya audio aayega.");
+        const tempPath = CUSTOM_VOICE_PATH + '.tmp';
+
+        fs.writeFileSync(tempPath, mediaBuffer);
+        fs.renameSync(tempPath, CUSTOM_VOICE_PATH);
+
+        fs.writeFileSync(
+            VOICE_META_PATH,
+            JSON.stringify({
+                mimetype: mimeType,
+                ptt: mimeType.includes('ogg')
+            })
+        );
+
+        return reply(
+            "✅ *Bot Menu Voice Successfully Changed!*\n\n" +
+            "Ab `.m` ya `.menu` likh kar check karein."
+        );
+
     } catch (e) {
-        console.error('Error setting Voice:', e);
-        reply(`Error setting Voice: ${e.message || e}`);
+        console.error('SETVOICE ERROR:', e);
+
+        return reply(
+            `❌ Voice change nahi hui: ${e.message || e}`
+        );
     }
 });
 
 // ==========================================
-// 3. MAIN MENU COMMAND (.menu)
+// 3. MAIN MENU (.menu)
 // ==========================================
 cmd({
     pattern: "menu",
@@ -121,46 +195,62 @@ cmd({
     filename: __filename
 },
 async (conn, mek, m, {
-    from, quoted, body, isCmd, command, args, q, isGroup,
-    sender, senderNumber, botNumber2, botNumber, pushname,
-    isMe, isOwner, groupMetadata, groupName, participants,
-    groupAdmins, isBotAdmins, isAdmins, reply, userConfig
+    from, reply, userConfig
 }) => {
     try {
         await conn.sendPresenceUpdate('composing', from);
 
-        let totalCommands = Object.keys(commands).length;
+        const allCommands = Object.values(commands);
+        const totalCommands = allCommands.length;
 
-        const categories = [...new Set(Object.values(commands).map(c => c.category))]
-            .filter(cat => cat && cat.trim() !== '' && cat !== 'undefined');
+        const categories = [
+            ...new Set(allCommands.map(c => c.category))
+        ].filter(cat =>
+            typeof cat === 'string' &&
+            cat.trim() !== '' &&
+            cat !== 'undefined'
+        );
 
         const categorized = {};
+
         categories.forEach(cat => {
-            const categoryCommands = Object.values(commands).filter(c => c.category === cat);
-            const validCommands = categoryCommands.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
-            if (validCommands.length > 0) {
-                categorized[cat] = validCommands;
+            const categoryCommands = allCommands.filter(
+                c => c.category === cat &&
+                c.pattern &&
+                c.pattern.trim() !== ''
+            );
+
+            if (categoryCommands.length) {
+                categorized[cat] = categoryCommands;
             }
         });
 
         let menuSections = '';
-        for (const [category, cmds] of Object.entries(categorized)) {
-            if (cmds && cmds.length > 0) {
-                const section = formatCategory(category, cmds);
-                if (section !== '') {
-                    menuSections += section;
-                }
-            }
+
+        for (const [category, categoryCommands] of
+            Object.entries(categorized)) {
+            menuSections += formatCategory(category, categoryCommands);
         }
 
-        const BOT_NAME = userConfig?.BOT_NAME || config.BOT_NAME || "Bot";
-        const OWNER_NAME = userConfig?.OWNER_NAME || config.OWNER_NAME || "Owner";
-        const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";
-        const MODE = userConfig?.MODE || config.MODE || "private";
-        const VERSION = userConfig?.VERSION || config.VERSION || "1.0.0";
-        const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";
+        const BOT_NAME =
+            userConfig?.BOT_NAME || config.BOT_NAME || "Bot";
 
-        let dec = `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
+        const OWNER_NAME =
+            userConfig?.OWNER_NAME || config.OWNER_NAME || "Owner";
+
+        const PREFIX =
+            userConfig?.PREFIX || config.PREFIX || ".";
+
+        const MODE =
+            userConfig?.MODE || config.MODE || "private";
+
+        const VERSION =
+            userConfig?.VERSION || config.VERSION || "1.0.0";
+
+        const DESCRIPTION =
+            userConfig?.DESCRIPTION || config.DESCRIPTION || "";
+
+        const dec = `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
 *├▢ 🤖 ${toSmallCaps('Owner')}:* ${OWNER_NAME}
 *├▢ 📜 ${toSmallCaps('Commands')}:* ${totalCommands}
 *├▢ ⏱️ ${toSmallCaps('Runtime')}:* ${runtime(process.uptime())}
@@ -172,26 +262,31 @@ ${menuSections}
 
 > ${DESCRIPTION || ''}`;
 
-        // 1. Handle DP Image (Custom or Default)
-        let imageToUse = null;
+        // 1. Read the selected menu DP.
+        let imageBuffer = null;
+
         try {
-            if (fs.existsSync(CUSTOM_DP_PATH)) {
-                imageToUse = fs.readFileSync(CUSTOM_DP_PATH);
+            if (
+                fs.existsSync(CUSTOM_DP_PATH) &&
+                fs.statSync(CUSTOM_DP_PATH).isFile()
+            ) {
+                imageBuffer = fs.readFileSync(CUSTOM_DP_PATH);
             } else {
                 const response = await axios.get(BOT_IMAGE, {
                     responseType: 'arraybuffer',
                     timeout: 15000
                 });
-                imageToUse = Buffer.from(response.data);
+
+                imageBuffer = Buffer.from(response.data);
             }
-        } catch (imageError) {
-            console.error('Menu image download failed:', imageError.message);
-            imageToUse = null;
+        } catch (err) {
+            console.error('MENU IMAGE ERROR:', err.message);
         }
 
-        if (imageToUse) {
+        // 2. Send menu image and caption.
+        if (imageBuffer && imageBuffer.length) {
             await conn.sendMessage(from, {
-                image: imageToUse,
+                image: imageBuffer,
                 caption: dec,
                 contextInfo: {
                     mentionedJid: [m.sender],
@@ -213,31 +308,49 @@ ${menuSections}
             }, { quoted: mek });
         }
 
-        // 2. Handle Voice Audio (Custom or Default love.mp3)
-        setTimeout(async () => {
-            try {
-                let finalAudioPath = null;
+        // 3. Send custom voice, or default love.mp3.
+        try {
+            let audioBuffer = null;
+            let mimeType = 'audio/mpeg';
+            let isPtt = false;
 
-                if (fs.existsSync(CUSTOM_VOICE_PATH)) {
-                    finalAudioPath = CUSTOM_VOICE_PATH;
-                } else if (fs.existsSync(DEFAULT_VOICE_PATH)) {
-                    finalAudioPath = DEFAULT_VOICE_PATH;
-                }
+            if (
+                fs.existsSync(CUSTOM_VOICE_PATH) &&
+                fs.statSync(CUSTOM_VOICE_PATH).isFile()
+            ) {
+                audioBuffer = fs.readFileSync(CUSTOM_VOICE_PATH);
 
-                if (finalAudioPath) {
-                    await conn.sendMessage(from, {
-                        audio: { url: finalAudioPath },
-                        mimetype: 'audio/mpeg',
-                        ptt: false
-                    }, { quoted: mek });
+                if (fs.existsSync(VOICE_META_PATH)) {
+                    try {
+                        const meta = JSON.parse(
+                            fs.readFileSync(VOICE_META_PATH, 'utf8')
+                        );
+
+                        mimeType = meta.mimetype || 'audio/mpeg';
+                        isPtt = Boolean(meta.ptt);
+                    } catch (_) {}
                 }
-            } catch (audioError) {
-                console.log('Error sending audio:', audioError);
+            } else if (
+                fs.existsSync(DEFAULT_VOICE_PATH) &&
+                fs.statSync(DEFAULT_VOICE_PATH).isFile()
+            ) {
+                audioBuffer = fs.readFileSync(DEFAULT_VOICE_PATH);
             }
-        }, 1000);
+
+            if (audioBuffer && audioBuffer.length) {
+                await conn.sendMessage(from, {
+                    audio: audioBuffer,
+                    mimetype: mimeType,
+                    ptt: isPtt
+                }, { quoted: mek });
+            }
+        } catch (audioError) {
+            console.error('MENU AUDIO ERROR:', audioError);
+        }
 
     } catch (e) {
-        console.log(e);
-        reply(`Error: ${e.message || e}`);
+        console.error('MENU COMMAND ERROR:', e);
+
+        return reply(`Error: ${e.message || e}`);
     }
 });
