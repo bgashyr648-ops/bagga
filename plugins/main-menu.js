@@ -34,9 +34,11 @@ const formatCategory = (category, cmds) => {
     return `${title}${body}${footer}`;
 };
 
-// RAW image URL (Default GitHub DP)
+// Paths & Default Images
 const BOT_IMAGE = "https://raw.githubusercontent.com/bgashyr648-ops/dp/main/ns.jpg";
 const CUSTOM_DP_PATH = path.join(__dirname, '../lib/custom_dp.jpg');
+const CUSTOM_VOICE_PATH = path.join(__dirname, '../lib/custom_menu_voice.mp3');
+const DEFAULT_VOICE_PATH = path.join(__dirname, '../lib/love.mp3');
 
 // ==========================================
 // 1. SET MENU DP COMMAND (.dp)
@@ -50,21 +52,18 @@ cmd({
     react: "🖼️",
     filename: __filename
 },
-async (conn, mek, m, { from, quoted, reply, isOwner }) => {
+async (conn, mek, m, { from, quoted, reply }) => {
     try {
-        // Check if replied message contains an image
         const mime = quoted?.mtype || m.mtype;
         if (!quoted || !/image/.test(mime)) {
             return reply("⚠️ Please reply to an image with *.dp* to set your custom Menu DP!");
         }
 
-        // Download quoted image
         const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
         if (!mediaBuffer) {
             return reply("❌ Failed to download image. Try again.");
         }
 
-        // Save image locally as custom DP
         fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
         if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
 
@@ -76,7 +75,41 @@ async (conn, mek, m, { from, quoted, reply, isOwner }) => {
 });
 
 // ==========================================
-// 2. MAIN MENU COMMAND (.menu)
+// 2. SET MENU VOICE COMMAND (.setvoice)
+// ==========================================
+cmd({
+    pattern: "setvoice",
+    alias: ["menuvoice", "setmenuvoice"],
+    use: '.setvoice (Reply to an audio/voice)',
+    desc: "Set custom audio for bot menu",
+    category: "main",
+    react: "🎙️",
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, reply }) => {
+    try {
+        const mime = quoted?.mtype || m.mtype;
+        if (!quoted || (!/audio/.test(mime) && !/voice/.test(mime))) {
+            return reply("⚠️ Please reply to an audio or voice note with *.setvoice*!");
+        }
+
+        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        if (!mediaBuffer) {
+            return reply("❌ Failed to download audio. Try again.");
+        }
+
+        fs.copyFileSync(mediaBuffer, CUSTOM_VOICE_PATH);
+        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+
+        return reply("✅ *Aapki Bot Menu Voice Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par yahi naya audio aayega.");
+    } catch (e) {
+        console.error('Error setting Voice:', e);
+        reply(`Error setting Voice: ${e.message || e}`);
+    }
+});
+
+// ==========================================
+// 3. MAIN MENU COMMAND (.menu)
 // ==========================================
 cmd({
     pattern: "menu",
@@ -139,9 +172,8 @@ ${menuSections}
 
 > ${DESCRIPTION || ''}`;
 
-        // Check if custom DP exists, otherwise use GitHub default image
+        // 1. Handle DP Image (Custom or Default)
         let imageToUse;
-
         try {
             if (fs.existsSync(CUSTOM_DP_PATH)) {
                 imageToUse = fs.readFileSync(CUSTOM_DP_PATH);
@@ -181,12 +213,20 @@ ${menuSections}
             }, { quoted: mek });
         }
 
+        // 2. Handle Voice Audio (Custom or Default love.mp3)
         setTimeout(async () => {
             try {
-                const audioPath = path.join(__dirname, '../lib/love.mp3');
-                if (fs.existsSync(audioPath)) {
+                let finalAudioPath = null;
+
+                if (fs.existsSync(CUSTOM_VOICE_PATH)) {
+                    finalAudioPath = CUSTOM_VOICE_PATH;
+                } else if (fs.existsSync(DEFAULT_VOICE_PATH)) {
+                    finalAudioPath = DEFAULT_VOICE_PATH;
+                }
+
+                if (finalAudioPath) {
                     await conn.sendMessage(from, {
-                        audio: { url: audioPath },
+                        audio: { url: finalAudioPath },
                         mimetype: 'audio/mpeg',
                         ptt: false
                     }, { quoted: mek });
