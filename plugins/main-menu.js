@@ -1,4 +1,4 @@
-Const config = require('../config')
+const config = require('../config')
 const { cmd, commands } = require('../command');
 const path = require('path');
 const os = require("os")
@@ -173,7 +173,7 @@ ${menuSections}
 > ${DESCRIPTION || ''}`;
 
         // 1. Handle DP Image (Custom or Default)
-        let imageToUse;
+        let imageToUse = null;
         try {
             if (fs.existsSync(CUSTOM_DP_PATH)) {
                 imageToUse = fs.readFileSync(CUSTOM_DP_PATH);
@@ -206,7 +206,7 @@ ${menuSections}
             }, { quoted: mek });
         } else {
             await conn.sendMessage(from, {
-                text: dec + '\n\n⚠️ Menu image could not be downloaded.',
+                text: dec + '\n\n⚠️ Menu image could not be loaded.',
                 contextInfo: {
                     mentionedJid: [m.sender]
                 }
@@ -238,6 +238,6 @@ ${menuSections}
 
     } catch (e) {
         console.log(e);
-        reply(`Error: ${e}`);
+        reply(`Error: ${e.message || e}`);
     }
 });
