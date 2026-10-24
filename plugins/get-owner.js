@@ -1,4 +1,4 @@
-const config = require('../config')
+ const config = require('../config')
 const { cmd, commands } = require('../command');
 const path = require('path');
 const os = require("os")
@@ -58,23 +58,16 @@ async (conn, mek, m, { from, quoted, reply }) => {
             return reply("⚠️ Pehle kisi image par reply karke .dp likhein!");
         }
 
-        let mediaBuffer = null;
-        try {
-            mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
-        } catch (err) {
-            if (typeof conn.downloadMediaMessage === 'function') {
-                mediaBuffer = await conn.downloadMediaMessage(quoted);
-            }
-        }
+        const mediaMsg = quoted.msg || quoted.message || quoted;
+        const mediaBuffer = await conn.downloadAndSaveMediaMessage(mediaMsg);
 
         if (!mediaBuffer) {
             return reply("❌ Image download nahi ho saki. Dobara try karein.");
         }
 
-        // Agar buffer path hai ya direct buffer hai toh handle karein
         if (typeof mediaBuffer === 'string' && fs.existsSync(mediaBuffer)) {
             fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
-            fs.unlinkSync(mediaBuffer);
+            try { fs.unlinkSync(mediaBuffer); } catch(err) {}
         } else if (Buffer.isBuffer(mediaBuffer)) {
             fs.writeFileSync(CUSTOM_DP_PATH, mediaBuffer);
         }
@@ -104,14 +97,8 @@ async (conn, mek, m, { from, quoted, reply }) => {
             return reply("⚠️ Pehle kisi audio ya voice note par reply karke .setvoice likhein!");
         }
 
-        let mediaBuffer = null;
-        try {
-            mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
-        } catch (err) {
-            if (typeof conn.downloadMediaMessage === 'function') {
-                mediaBuffer = await conn.downloadMediaMessage(quoted);
-            }
-        }
+        const mediaMsg = quoted.msg || quoted.message || quoted;
+        const mediaBuffer = await conn.downloadAndSaveMediaMessage(mediaMsg);
 
         if (!mediaBuffer) {
             return reply("❌ Audio download nahi ho saki. Dobara try karein.");
@@ -119,7 +106,7 @@ async (conn, mek, m, { from, quoted, reply }) => {
 
         if (typeof mediaBuffer === 'string' && fs.existsSync(mediaBuffer)) {
             fs.copyFileSync(mediaBuffer, CUSTOM_VOICE_PATH);
-            fs.unlinkSync(mediaBuffer);
+            try { fs.unlinkSync(mediaBuffer); } catch(err) {}
         } else if (Buffer.isBuffer(mediaBuffer)) {
             fs.writeFileSync(CUSTOM_VOICE_PATH, mediaBuffer);
         }
@@ -264,3 +251,4 @@ ${menuSections}
         reply(`Error: ${e.message || e}`);
     }
 });
+   
