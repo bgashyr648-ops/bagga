@@ -54,20 +54,30 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, reply }) => {
     try {
-        const mime = quoted ? (quoted.mtype || quoted.mediaType || '') : (m.mtype || '');
-        const isImage = /image/.test(mime) || quoted?.message?.imageMessage;
-
-        if (!quoted || !isImage) {
-            return reply("⚠️ Please reply to an image with *.dp* to set your custom Menu DP!");
+        if (!quoted) {
+            return reply("⚠️ Pehle kisi image par reply karke .dp likhein!");
         }
 
-        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        let mediaBuffer = null;
+        try {
+            mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        } catch (err) {
+            if (typeof conn.downloadMediaMessage === 'function') {
+                mediaBuffer = await conn.downloadMediaMessage(quoted);
+            }
+        }
+
         if (!mediaBuffer) {
-            return reply("❌ Failed to download image. Try again.");
+            return reply("❌ Image download nahi ho saki. Dobara try karein.");
         }
 
-        fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
-        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+        // Agar buffer path hai ya direct buffer hai toh handle karein
+        if (typeof mediaBuffer === 'string' && fs.existsSync(mediaBuffer)) {
+            fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
+            fs.unlinkSync(mediaBuffer);
+        } else if (Buffer.isBuffer(mediaBuffer)) {
+            fs.writeFileSync(CUSTOM_DP_PATH, mediaBuffer);
+        }
 
         return reply("✅ *Aapki Bot Menu DP Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par wahi nayi photo aayegi.");
     } catch (e) {
@@ -90,20 +100,29 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, reply }) => {
     try {
-        const mime = quoted ? (quoted.mtype || quoted.mediaType || '') : (m.mtype || '');
-        const isAudio = /audio/.test(mime) || /voice/.test(mime) || quoted?.message?.audioMessage;
-
-        if (!quoted || !isAudio) {
-            return reply("⚠️ Please reply to an audio or voice note with *.setvoice*!");
+        if (!quoted) {
+            return reply("⚠️ Pehle kisi audio ya voice note par reply karke .setvoice likhein!");
         }
 
-        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        let mediaBuffer = null;
+        try {
+            mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        } catch (err) {
+            if (typeof conn.downloadMediaMessage === 'function') {
+                mediaBuffer = await conn.downloadMediaMessage(quoted);
+            }
+        }
+
         if (!mediaBuffer) {
-            return reply("❌ Failed to download audio. Try again.");
+            return reply("❌ Audio download nahi ho saki. Dobara try karein.");
         }
 
-        fs.copyFileSync(mediaBuffer, CUSTOM_VOICE_PATH);
-        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+        if (typeof mediaBuffer === 'string' && fs.existsSync(mediaBuffer)) {
+            fs.copyFileSync(mediaBuffer, CUSTOM_VOICE_PATH);
+            fs.unlinkSync(mediaBuffer);
+        } else if (Buffer.isBuffer(mediaBuffer)) {
+            fs.writeFileSync(CUSTOM_VOICE_PATH, mediaBuffer);
+        }
 
         return reply("✅ *Aapki Bot Menu Voice Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par yahi naya audio aayega.");
     } catch (e) {
