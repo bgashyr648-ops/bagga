@@ -1,4 +1,4 @@
-const config = require('../config')
+Const config = require('../config')
 const { cmd, commands } = require('../command');
 const path = require('path');
 const os = require("os")
@@ -34,9 +34,50 @@ const formatCategory = (category, cmds) => {
     return `${title}${body}${footer}`;
 };
 
-// RAW image URL
+// RAW image URL (Default GitHub DP)
 const BOT_IMAGE = "https://raw.githubusercontent.com/bgashyr648-ops/dp/main/ns.jpg";
+const CUSTOM_DP_PATH = path.join(__dirname, '../lib/custom_dp.jpg');
 
+// ==========================================
+// 1. SET MENU DP COMMAND (.dp)
+// ==========================================
+cmd({
+    pattern: "dp",
+    alias: ["setdp", "menudp"],
+    use: '.dp (Reply to an image)',
+    desc: "Set custom image for bot menu",
+    category: "main",
+    react: "🖼️",
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, reply, isOwner }) => {
+    try {
+        // Check if replied message contains an image
+        const mime = quoted?.mtype || m.mtype;
+        if (!quoted || !/image/.test(mime)) {
+            return reply("⚠️ Please reply to an image with *.dp* to set your custom Menu DP!");
+        }
+
+        // Download quoted image
+        const mediaBuffer = await conn.downloadAndSaveMediaMessage(quoted);
+        if (!mediaBuffer) {
+            return reply("❌ Failed to download image. Try again.");
+        }
+
+        // Save image locally as custom DP
+        fs.copyFileSync(mediaBuffer, CUSTOM_DP_PATH);
+        if (fs.existsSync(mediaBuffer)) fs.unlinkSync(mediaBuffer);
+
+        return reply("✅ *Aapki Bot Menu DP Successfully Lag Gayi Hai!*\n\nAb `.m` ya `.menu` likhne par wahi nayi photo aayegi.");
+    } catch (e) {
+        console.error('Error setting DP:', e);
+        reply(`Error setting DP: ${e.message || e}`);
+    }
+});
+
+// ==========================================
+// 2. MAIN MENU COMMAND (.menu)
+// ==========================================
 cmd({
     pattern: "menu",
     alias: ["m", "help", "allmenu", "fullmenu"],
@@ -98,15 +139,19 @@ ${menuSections}
 
 > ${DESCRIPTION || ''}`;
 
-        // Download image from RAW URL, then send it with the menu
+        // Check if custom DP exists, otherwise use GitHub default image
         let imageToUse;
 
         try {
-            const response = await axios.get(BOT_IMAGE, {
-                responseType: 'arraybuffer',
-                timeout: 15000
-            });
-            imageToUse = Buffer.from(response.data);
+            if (fs.existsSync(CUSTOM_DP_PATH)) {
+                imageToUse = fs.readFileSync(CUSTOM_DP_PATH);
+            } else {
+                const response = await axios.get(BOT_IMAGE, {
+                    responseType: 'arraybuffer',
+                    timeout: 15000
+                });
+                imageToUse = Buffer.from(response.data);
+            }
         } catch (imageError) {
             console.error('Menu image download failed:', imageError.message);
             imageToUse = null;
