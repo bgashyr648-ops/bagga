@@ -10,10 +10,8 @@ cmd({
     react: "⚙️",
     filename: __filename
 },
-async (conn, mek, m, { from, args, isOwner, reply }) => {
+async (conn, mek, m, { from, args, reply }) => {
     try {
-        if (!isOwner) return reply("❌ This command is only for the bot owner!");
-
         let input = args.join(" ").trim() || (m.quoted && m.quoted.text);
         if (!input) {
             return reply(
@@ -57,4 +55,4 @@ async (conn, mek, m, { from, args, isOwner, reply }) => {
         reply(`⚠️ Error: ${e.message}`);
     }
 });
-        
+                
