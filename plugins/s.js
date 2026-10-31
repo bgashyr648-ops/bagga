@@ -1,12 +1,17 @@
-// commands/setchannel.js
+const config = require('../config');
+const { cmd } = require('../command');
 const { loadSettings, saveSettings } = require('../lib/newsletters');
 
-module.exports = {
-    name: 'setchannel',
-    alias: ['channelset', 'changechannel'],
-    desc: 'Update bot channel JID and link dynamically using either link or JID.',
-    category: 'owner',
-    async execute(conn, mek, m, { args, isOwner, reply }) {
+cmd({
+    pattern: "setchannel",
+    alias: ["channelset", "setnews"],
+    desc: "Update channel link or JID dynamically for menu and ping.",
+    category: "owner",
+    react: "⚙️",
+    filename: __filename
+},
+async (conn, mek, m, { from, args, isOwner, reply }) => {
+    try {
         if (!isOwner) return reply("❌ This command is only for the bot owner!");
 
         let input = args.join(" ").trim() || (m.quoted && m.quoted.text);
@@ -21,22 +26,18 @@ module.exports = {
         let newJid = "";
         let newLink = "";
 
-        // Check if user provided a WhatsApp channel link
         if (input.includes('whatsapp.com/channel/')) {
             newLink = input.trim();
-            // Agar link diya hai, toh default ya existing JID rakhein ya extract karein
-            // Aap apna newsletter JID yahan automatically map kar sakte hain ya user ko prompt de sakte hain
-            newJid = "120363431097122128@newsletter"; // Default fallback JID
+            newJid = "120363431097122128@newsletter";
         } else if (input.endsWith('@newsletter')) {
             newJid = input.trim();
             newLink = `https://whatsapp.com/channel/${newJid.split('@')[0]}`;
         } else {
-            return reply("❌ Invalid format! Please send a valid WhatsApp channel link or JID.");
+            return reply("❌ Invalid format! Provide a valid WhatsApp channel link or JID.");
         }
 
         let settings = loadSettings();
 
-        // Update settings
         settings.newsletterJids = [newJid];
         settings.FollowChannelJids = [newJid];
         settings.channelLink = newLink;
@@ -46,10 +47,14 @@ module.exports = {
                 `✅ *Channel Successfully Updated!*\n\n` +
                 `🔗 *JID:* \`${newJid}\`\n` +
                 `🌐 *Link:* ${newLink}\n\n` +
-                `Now `.menu` and `.ping` will show this new channel!`
+                `Now .menu and .ping will automatically use this updated channel!`
             );
         } else {
             return reply("❌ Error occurred while saving settings.");
         }
+    } catch (e) {
+        console.error("Error in setchannel command:", e);
+        reply(`⚠️ Error: ${e.message}`);
     }
-};
+});
+        
