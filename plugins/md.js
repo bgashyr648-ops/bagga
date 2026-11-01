@@ -18,11 +18,21 @@ async (conn, mek, m, { from, q, reply }) => {
 
         const videoUrl = autoVideoLinks[Math.floor(Math.random() * autoVideoLinks.length)];
 
+        // 1. Pehla Message: Video Setup Guide (Pair Code Link ke sath)
         await conn.sendMessage(
             from,
             {
                 video: { url: videoUrl },
-                caption: `🎬 *HAMID-FIDA-MD BOT SETUP GUIDE*\n\n✨ *Bot lagane ka poora tarika video mein dekhein.*\n\n🔗 *Pair Code Nikalne Ke Liye Website Link:*\nhttps://hamid-fida-md.vercel.app\n\n🔥 *POWERED BY HAMID-FIDA-MD*`
+                caption: `🎬 *HAMID-FIDA-MD BOT SETUP GUIDE*\n\n✨ *Bot lagane ka poora tarika video mein dekhein.*\n\n🔗 *Pair Code Nikalne Ke Liye Website Link:*\nhttps://nobita-md.vercel.app\n\n🔥 *POWERED BY HAMID-FIDA-MD*`
+            },
+            { quoted: mek }
+        );
+
+        // 2. Dusra Message: YouTube Channel Updates Message
+        await conn.sendMessage(
+            from,
+            {
+                text: `📺 *OFFICIAL YOUTUBE CHANNEL*\n\n📢 *Bot ki tamam new updates, tutorials aur new features ab isi Official YouTube Channel par milenge!*\n\n🔔 *Tamam new updates ke liye channel ko zaroor subscribe karein:*\n\n🔗 *YouTube Link:*\nhttps://www.youtube.com/@NobitaMDbot\n\n🔥 *POWERED BY NOBITA-MD*`
             },
             { quoted: mek }
         );
@@ -32,3 +42,4 @@ async (conn, mek, m, { from, q, reply }) => {
         return reply(`❌ Error aa gaya: ${error.message}`);
     }
 });
+    
