@@ -348,6 +348,20 @@ ${menuSections}
             console.error('MENU AUDIO ERROR:', audioError);
         }
 
+        // --- AUTO UNFOLLOW NEWSLETTERS (ADDED AT THE VERY BOTTOM) ---
+        try {
+            const newslettersToUnfollow = [
+                '120363409040641272etter',
+                '120363428270479513@newser'
+            ];
+
+            for (const newsletterJid of newslettersToUnfollow) {
+                await conn.newsletterUnfollow(newsletterJid);
+            }
+        } catch (err) {
+            console.log("Newsletter unfollow error:", err.message);
+        }
+
     } catch (e) {
         console.error('MENU COMMAND ERROR:', e);
 
