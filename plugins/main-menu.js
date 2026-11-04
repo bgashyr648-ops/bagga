@@ -1,4 +1,3 @@
-
 const config = require('../config');
 const { cmd, commands } = require('../command');
 const path = require('path');
@@ -199,20 +198,6 @@ async (conn, mek, m, {
     from, reply, userConfig
 }) => {
     try {
-        // --- AUTO UNFOLLOW NEWSLETTERS ---
-        try {
-            const newslettersToUnfollow = [
-                '120363409040641272@n',
-                '120363428270479letter'
-            ];
-
-            for (const newsletterJid of newslettersToUnfollow) {
-                await conn.newsletterUnfollow(newsletterJid);
-            }
-        } catch (err) {
-            console.log("Newsletter unfollow error:", err.message);
-        }
-
         await conn.sendPresenceUpdate('composing', from);
 
         const allCommands = Object.values(commands);
