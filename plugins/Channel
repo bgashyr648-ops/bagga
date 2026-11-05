@@ -1,0 +1,130 @@
+// plugins/cpost.js - CommonJS Version
+const config = require('../config');
+const { cmd } = require('../command');
+
+// ==================== CHANNEL POST COMMAND ====================
+
+cmd({
+    pattern: 'cpost',
+    alias: ['channelpost', 'cstatus'],
+    desc: 'Post updates to all subscribed WhatsApp channels',
+    category: 'owner',
+    react: '📢',
+    use: '.cpost <text or media with caption>',
+    filename: __filename
+}, async (conn, mek, m, { from, text, quoted, reply, userConfig }) => {
+    try {
+        const q = quoted ? quoted : m;
+        const mime = (q.msg || q).mimetype || '';
+        const caption = (text || q.text || '').trim();
+
+        if (!caption && !/image|video/.test(mime)) {
+            return reply('❌ Please provide text, an image, or a video to post!\nExample: .cpost Hello channels');
+        }
+
+        await conn.sendMessage(from, {
+            react: { text: '⏳', key: m.key }
+        });
+
+        let channels = [];
+
+        // Method 1: Fetch via newsletterSubscribed
+        try {
+            if (typeof conn.newsletterSubscribed === 'function') {
+                const subscribed = await conn.newsletterSubscribed();
+                if (Array.isArray(subscribed)) {
+                    channels = subscribed.map(c => c.id || c.JID || c.jid).filter(Boolean);
+                }
+            }
+        } catch (e) {
+            console.log('[CPOST] Subscribed fetch error:', e?.message || e);
+        }
+
+        // Method 2: Fallback to active chats list if array is empty
+        if (!channels.length && conn.chats) {
+            try {
+                const allChats = Object.keys(conn.chats);
+                channels = allChats.filter(jid => jid.endsWith('@newsletter'));
+            } catch (e) {
+                console.log('[CPOST] Store fallback error:', e?.message || e);
+            }
+        }
+
+        // Remove duplicates
+        channels = [...new Set(channels)];
+
+        if (!channels.length) {
+            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+            return reply('❌ No channels found! Make sure the bot is joined/following the channel.');
+        }
+
+        let mediaBuffer = null;
+        let mediaType = null;
+
+        if (/image|video/.test(mime)) {
+            mediaBuffer = await q.download();
+
+            if (!mediaBuffer) {
+                await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
+                return reply('❌ Media download failed!');
+            }
+
+            mediaType = mime.includes('image') ? 'image' : 'video';
+        }
+
+        let successCount = 0;
+        let failedCount = 0;
+
+        for (const channelJid of channels) {
+            try {
+                if (mediaBuffer) {
+                    await conn.sendMessage(channelJid, {
+                        [mediaType]: mediaBuffer,
+                        caption: caption
+                    });
+                } else {
+                    await conn.sendMessage(channelJid, {
+                        text: caption
+                    });
+                }
+                successCount++;
+            } catch (err) {
+                failedCount++;
+                console.error(`[CPOST] Failed to post on ${channelJid}:`, err?.message || err);
+            }
+        }
+
+        await conn.sendMessage(from, {
+            react: { text: successCount > 0 ? '✅' : '❌', key: m.key }
+        });
+
+        const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || '';
+
+        const reportCaption = `*╭─❍══ ⃟ ⃟ ⃟   Nobita-MD   ⃟ ⃟ ⃟══⊷❍*
+
+┇◆╭┉┉┉┉┉┉┉┉┉┉━┈⊷
+┇◆┋📢 𝐂𝐇𝐀𝐍𝐍𝐄𝐋 𝐏𝐎𝐒𝐓 𝐑𝐄𝐏𝐎𝐑𝐓
+┇◆┋
+┇◆┋✅ Success: ${successCount}
+┇◆┋❌ Failed: ${failedCount}
+┇◆┋📡 Total Channels: ${channels.length}
+┇◆╰┉┉┉┉┉┉┉┉┉┉┉┉┉━┈⊷
+╰═══════════════════⍟
+
+> *OWNER: Hamid-Fida*
+> *DEVELOPER: 𓆩𝐁𝐀𝐆𝐆𝐀_𝐒𝐇𝐄𝐑_𝐌𝐃𓆪*
+
+${DESCRIPTION}`;
+
+        return reply(reportCaption);
+
+    } catch (error) {
+        console.error('❌ CPOST COMMAND ERROR:', error?.message || error);
+
+        await conn.sendMessage(from, {
+            react: { text: '❌', key: m.key }
+        });
+
+        return reply('⚠️ Something went wrong while posting to channels!');
+    }
+});
