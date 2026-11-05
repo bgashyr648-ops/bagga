@@ -26,21 +26,36 @@ cmd({
             react: { text: '⏳', key: m.key }
         });
 
-        if (typeof conn.newsletterSubscribed !== 'function') {
-            await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-            return reply('❌ Your bot version does not support fetching channels automatically.');
+        let channels = [];
+
+        // Method 1: Fetch via newsletterSubscribed
+        try {
+            if (typeof conn.newsletterSubscribed === 'function') {
+                const subscribed = await conn.newsletterSubscribed();
+                if (Array.isArray(subscribed)) {
+                    channels = subscribed.map(c => c.id || c.JID || c.jid).filter(Boolean);
+                }
+            }
+        } catch (e) {
+            console.log('[CPOST] Subscribed fetch error:', e?.message || e);
         }
 
-        const subscribed = await conn.newsletterSubscribed();
-        const channels = [...new Set(
-            (Array.isArray(subscribed) ? subscribed : [])
-                .map(c => c.id || c.jid)
-                .filter(Boolean)
-        )];
+        // Method 2: Fallback to active chats list if array is empty
+        if (!channels.length && conn.chats) {
+            try {
+                const allChats = Object.keys(conn.chats);
+                channels = allChats.filter(jid => jid.endsWith('@newsletter'));
+            } catch (e) {
+                console.log('[CPOST] Store fallback error:', e?.message || e);
+            }
+        }
+
+        // Remove duplicates
+        channels = [...new Set(channels)];
 
         if (!channels.length) {
             await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-            return reply('❌ No subscribed channels found linked to your number!');
+            return reply('❌ No channels found! Make sure the bot is joined/following the channel.');
         }
 
         let mediaBuffer = null;
@@ -75,7 +90,7 @@ cmd({
                 successCount++;
             } catch (err) {
                 failedCount++;
-                console.error(`[CPOST] Failed to post on channel ${channelJid}:`, err?.message || err);
+                console.error(`[CPOST] Failed to post on ${channelJid}:`, err?.message || err);
             }
         }
 
@@ -96,7 +111,8 @@ cmd({
 ┇◆╰┉┉┉┉┉┉┉┉┉┉┉┉┉━┈⊷
 ╰═══════════════════⍟
 
-> © ᴘᴏᴡᴇʀᴇᴅ ʙʏ NobitaMD
+> *OWNER: Hamid-Fida*
+> *DEVELOPER: 𓆩𝐁𝐀𝐆𝐆𝐀_𝐒𝐇𝐄𝐑_𝐌𝐃𓆪*
 
 ${DESCRIPTION}`;
 
@@ -112,3 +128,4 @@ ${DESCRIPTION}`;
         return reply('⚠️ Something went wrong while posting to channels!');
     }
 });
+        
