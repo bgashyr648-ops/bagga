@@ -10,21 +10,22 @@ cmd({
     react: "📢",
     filename: __filename
 },
-async (conn, mek, m, { quoted, reply, text }) => {
+async (conn, mek, m, { from, quoted, sender, reply, text }) => {
     try {
         const q = quoted || m;
         const mime = (q.msg || q).mimetype || '';
         const caption = (text || q.text || '').trim();
 
         if (!caption && !/image|video/.test(mime)) {
-            return reply("⚠️ Text, image or video required!");
+            return reply("⚠️ Please provide text, an image, or a video to post!");
         }
 
         await m.react("⏳");
 
+        // Check if newsletterSubscribed is available
         if (typeof conn.newsletterSubscribed !== 'function') {
             await m.react("❌");
-            return reply("❌ Your WhatsApp library does not support newsletterSubscribed().");
+            return reply("❌ Your bot's Baileys version does not support fetching channels automatically.");
         }
 
         const subscribed = await conn.newsletterSubscribed();
@@ -36,7 +37,7 @@ async (conn, mek, m, { quoted, reply, text }) => {
 
         if (!channels.length) {
             await m.react("❌");
-            return reply("❌ No subscribed channels found!");
+            return reply("❌ No channels found linked to your number!");
         }
 
         let buffer = null;
@@ -47,7 +48,7 @@ async (conn, mek, m, { quoted, reply, text }) => {
 
             if (!buffer) {
                 await m.react("❌");
-                return reply("❌ Media download failed!");
+                return reply("❌ Failed to download media!");
             }
 
             type = mime.includes("image") ? "image" : "video";
@@ -66,19 +67,18 @@ async (conn, mek, m, { quoted, reply, text }) => {
                 } else {
                     await conn.sendMessage(jid, { text: caption });
                 }
-
                 success++;
             } catch (err) {
                 failed++;
-                console.error(`Channel ${jid}:`, err.message);
+                console.error(`Failed to post on channel ${jid}:`, err.message);
             }
         }
 
         await m.react(success ? "✅" : "❌");
 
         return reply(
-            `📢 CHANNEL UPDATE REPORT\n\n` +
-            `✅ Successful: ${success}\n` +
+            `📢 *CHANNEL STATUS REPORT*\n\n` +
+            `✅ Success: ${success}\n` +
             `❌ Failed: ${failed}\n` +
             `📡 Total Channels: ${channels.length}`
         );
@@ -86,6 +86,7 @@ async (conn, mek, m, { quoted, reply, text }) => {
     } catch (err) {
         console.error("CPOST ERROR:", err);
         await m.react("❌");
-        return reply(`❌ Error: ${err.message}`);
+        return reply(`❌ An error occurred: ${err.message}`);
     }
 });
+             
