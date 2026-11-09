@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# 👑 BAGGA-SHAR-MD 👑
+# BAGGA-SHAR-MD
 
 ### ⚡ THE FUTURE OF WHATSAPP AUTOMATION ⚡
 
