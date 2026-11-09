@@ -1,9 +1,9 @@
 
 <div align="center">
 
-<h1>👑 BAGGA-SHAR-MD 👑</h1>
+# 👑 BAGGA-SHAR-MD 👑
 
-<h3>⚡ THE FUTURE OF WHATSAPP AUTOMATION ⚡</h3>
+### ⚡ THE FUTURE OF WHATSAPP AUTOMATION ⚡
 
 <img src="https://img.shields.io/badge/✦_PREMIUM_BOT-8A2BE2?style=for-the-badge&labelColor=090014" />
 <img src="https://img.shields.io/badge/VERSION-2026-111111?style=for-the-badge" />
@@ -20,11 +20,15 @@
 
 <br/><br/>
 
-<a href="https://github.com/bgashyr648-ops/Baga">
-<img src="https://img.shields.io/badge/💎_VIEW_SOURCE_CODE-181717?style=for-the-badge&logo=github" />
-</a>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-<br/><br/>
+<h2>💜 OFFICIAL WHATSAPP CHANNEL 💜</h2>
+
+<p>Join Our Official Channel For Latest Updates & Announcements</p>
+
+<a href="https://whatsapp.com/channel/0029Vb8VNSsJJhzdMiT9wb1K">
+<img src="https://img.shields.io/badge/💜_JOIN_OFFICIAL_CHANNEL-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" />
+</a>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
