@@ -678,11 +678,12 @@ async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, u
     userConfig.OWNER_REACT = newValue;
 
     await updateUserConfig(sanitizedNumber, userConfig);
-    
+
     await reply(
         `✅ *Aᴜᴛᴏ Rᴇᴀᴄᴛ sᴇᴛ ᴛᴏ:* ${newValue}\n` +
         `✅ *Oᴡɴᴇʀ Rᴇᴀᴄᴛ sᴇᴛ ᴛᴏ:* ${newValue}\n\n` +
         `Bot will ${newValue === 'true' ? 'now' : 'no longer'} automatically react to messages.`
+    );
 });
 
 // ===============================
