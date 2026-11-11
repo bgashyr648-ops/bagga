@@ -673,9 +673,16 @@ async (conn, mek, m, { from, reply, isCreator, args, prefix, updateUserConfig, u
 
     const newValue = value === 'on' ? 'true' : 'false';
     userConfig.AUTO_REACT = newValue;
+
+    // Also toggle OWNER_REACT along with AUTO_REACT
+    userConfig.OWNER_REACT = newValue;
+
     await updateUserConfig(sanitizedNumber, userConfig);
     
-    await reply(`✅ *Aᴜᴛᴏ Rᴇᴀᴄᴛ sᴇᴛ ᴛᴏ:* ${newValue}\n\nBot will ${newValue === 'true' ? 'now' : 'no longer'} automatically react to messages.`);
+    await reply(
+        `✅ *Aᴜᴛᴏ Rᴇᴀᴄᴛ sᴇᴛ ᴛᴏ:* ${newValue}\n` +
+        `✅ *Oᴡɴᴇʀ Rᴇᴀᴄᴛ sᴇᴛ ᴛᴏ:* ${newValue}\n\n` +
+        `Bot will ${newValue === 'true' ? 'now' : 'no longer'} automatically react to messages.`
 });
 
 // ===============================
