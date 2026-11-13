@@ -24,6 +24,32 @@ function saveDB(data) {
 }
 
 // ======================================
+// BOT OWNER / BOT NUMBER PERMISSION
+// ======================================
+
+function isBotAccount(conn, m) {
+    const botJid = conn.user?.id || conn.user?.jid;
+    const senderJid = m?.sender || m?.key?.participant;
+
+    function cleanJid(jid) {
+        return String(jid || "")
+            .split("@")[0]
+            .split(":")[0]
+            .replace(/\D/g, "");
+    }
+
+    const botNumber = cleanJid(botJid);
+    const senderNumber = cleanJid(senderJid);
+
+    return !!botNumber && !!senderNumber &&
+        botNumber === senderNumber;
+}
+
+function hasPermission(conn, m, isCreator) {
+    return !!isCreator || isBotAccount(conn, m);
+}
+
+// ======================================
 // SET WELCOME
 // ======================================
 
@@ -32,10 +58,14 @@ cmd({
     desc: "Set custom welcome message",
     category: "group",
     filename: __filename
-}, async (conn, mek, m, { from, q, reply, isGroup, isAdmins, isCreator }) => {
+}, async (conn, mek, m, { from, q, reply, isGroup, isCreator }) => {
     try {
         if (!isGroup) return reply("❌ Groups only!");
-        if (!isAdmins && !isCreator) return reply("❌ Only admins can use this command!");
+
+        if (!hasPermission(conn, m, isCreator)) {
+            return reply("❌ Access Denied! Only Bot Owner or Bot Account can use this command!");
+        }
+
         if (!q) return reply("Example: .setwelcome Welcome @user to our group!");
 
         const db = loadDB();
@@ -59,10 +89,14 @@ cmd({
     desc: "Set custom goodbye message",
     category: "group",
     filename: __filename
-}, async (conn, mek, m, { from, q, reply, isGroup, isAdmins, isCreator }) => {
+}, async (conn, mek, m, { from, q, reply, isGroup, isCreator }) => {
     try {
         if (!isGroup) return reply("❌ Groups only!");
-        if (!isAdmins && !isCreator) return reply("❌ Only admins can use this command!");
+
+        if (!hasPermission(conn, m, isCreator)) {
+            return reply("❌ Access Denied! Only Bot Owner or Bot Account can use this command!");
+        }
+
         if (!q) return reply("Example: .setgoodbye Goodbye @user!");
 
         const db = loadDB();
@@ -86,10 +120,13 @@ cmd({
     desc: "Reset welcome message",
     category: "group",
     filename: __filename
-}, async (conn, mek, m, { from, reply, isGroup, isAdmins, isCreator }) => {
+}, async (conn, mek, m, { from, reply, isGroup, isCreator }) => {
     try {
         if (!isGroup) return reply("❌ Groups only!");
-        if (!isAdmins && !isCreator) return reply("❌ Admins only!");
+
+        if (!hasPermission(conn, m, isCreator)) {
+            return reply("❌ Access Denied! Only Bot Owner or Bot Account can use this command!");
+        }
 
         const db = loadDB();
         if (db[from]) delete db[from].welcome;
@@ -111,10 +148,13 @@ cmd({
     desc: "Reset goodbye message",
     category: "group",
     filename: __filename
-}, async (conn, mek, m, { from, reply, isGroup, isAdmins, isCreator }) => {
+}, async (conn, mek, m, { from, reply, isGroup, isCreator }) => {
     try {
         if (!isGroup) return reply("❌ Groups only!");
-        if (!isAdmins && !isCreator) return reply("❌ Admins only!");
+
+        if (!hasPermission(conn, m, isCreator)) {
+            return reply("❌ Access Denied! Only Bot Owner or Bot Account can use this command!");
+        }
 
         const db = loadDB();
         if (db[from]) delete db[from].goodbye;
@@ -176,6 +216,4 @@ function registerWelcomeEvents(conn) {
 // EVENT REGISTRATION
 // ======================================
 
-// Register the event when the plugin is loaded.
-// The bot must pass its connection to this function.
 module.exports = { registerWelcomeEvents };
