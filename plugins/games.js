@@ -1,160 +1,184 @@
 
 const { cmd } = require('../command');
-const config = require('../config');
 const fs = require('fs');
 const path = require('path');
 
 // ==========================================
-// HOOK MASTER - SINGLE PLAYER LEVEL GAME
+// HOOK MASTER GAME
 // ==========================================
 
-const DATA_PATH = path.join(__dirname, '../lib/hookgame.json');
+const DATA_FILE = path.join(__dirname, '../lib/hook.json');
 
-if (!fs.existsSync(path.dirname(DATA_PATH))) {
-    fs.mkdirSync(path.dirname(DATA_PATH), { recursive: true });
+if (!fs.existsSync(path.dirname(DATA_FILE))) {
+    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 }
 
-if (!fs.existsSync(DATA_PATH)) {
-    fs.writeFileSync(DATA_PATH, JSON.stringify({}, null, 2));
+if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify({}, null, 2));
 }
 
-function loadData() {
+function loadGame() {
     try {
-        return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+        return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     } catch {
         return {};
     }
 }
 
-function saveData(data) {
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
+function saveGame(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-// Normalize WhatsApp number
-function normalizeNumber(jid) {
-    return String(jid || '').split('@')[0].replace(/\D/g, '');
+function normalize(jid) {
+    if (!jid) return '';
+
+    return String(jid)
+        .split('@')[0]
+        .split(':')[0]
+        .replace(/\D/g, '');
 }
 
-// Board owner access
-function getAllowedNumbers() {
-    const owners =
-        config.GAME_OWNER_NUMBER ||
-        config.OWNER_NUMBER ||
-        config.OWNER ||
-        [];
+// Identify the connected board number
+function getBoardNumber(conn) {
+    return normalize(conn?.user?.id || conn?.user?.jid || '');
+}
 
-    if (Array.isArray(owners)) {
-        return owners.map(normalizeNumber);
+// ==========================================
+// LEVELS
+// ==========================================
+
+const LEVELS = [
+    ['grab', 'swing', 'jump'],
+    ['grab', 'swing', 'release', 'jump'],
+    ['grab', 'swing', 'swing', 'release', 'jump'],
+    ['grab', 'jump', 'grab', 'swing', 'release'],
+    ['grab', 'swing', 'jump', 'grab', 'release', 'jump'],
+    ['grab', 'grab', 'swing', 'jump', 'release', 'swing'],
+    ['grab', 'swing', 'grab', 'jump', 'swing', 'release', 'jump'],
+    ['jump', 'grab', 'swing', 'grab', 'release', 'jump', 'swing'],
+    ['grab', 'swing', 'jump', 'grab', 'swing', 'release', 'jump', 'grab'],
+    ['grab', 'jump', 'swing', 'grab', 'jump', 'release', 'swing', 'grab', 'jump']
+];
+
+function getLevelSequence(level) {
+    if (level <= LEVELS.length) {
+        return LEVELS[level - 1];
     }
 
-    return [normalizeNumber(owners)];
-}
+    const moves = ['grab', 'swing', 'release', 'jump'];
+    const sequence = [];
 
-function isAllowed(sender) {
-    const allowed = getAllowedNumbers().filter(Boolean);
-
-    return allowed.includes(normalizeNumber(sender));
-}
-
-// Game action sequence
-function createLevel(level) {
-    const actions = ['grab', 'swing', 'release', 'jump'];
-
-    let sequence = [];
-
-    const length = Math.min(3 + Math.floor(level / 2), 7);
+    const length = Math.min(5 + Math.floor(level / 2), 12);
 
     for (let i = 0; i < length; i++) {
-        sequence.push(
-            actions[Math.floor(Math.random() * actions.length)]
-        );
+        sequence.push(moves[Math.floor(Math.random() * moves.length)]);
     }
 
     return sequence;
 }
 
-function actionEmoji(action) {
-    const emojis = {
-        grab: '🪝',
-        swing: '🔄',
-        release: '✋',
-        jump: '🦘'
-    };
-
-    return emojis[action] || '🎮';
-}
+const EMOJI = {
+    grab: '🪝',
+    swing: '🔄',
+    release: '✋',
+    jump: '🦘'
+};
 
 // ==========================================
 // GAME COMMAND
 // ==========================================
 
 cmd({
-    pattern: "hook",
-    alias: ["hookgame", "hookmaster"],
-    desc: "Play Hook Master Level Game",
-    category: "games",
-    react: "🪝",
+    pattern: 'hook',
+    alias: ['hookgame', 'hookmaster'],
+    desc: 'Play Hook Master Game',
+    category: 'games',
+    react: '🪝',
     filename: __filename
 },
 async (conn, mek, m, { from, sender, args, reply }) => {
 
     try {
 
-        // Only board owner can play
-        if (!isAllowed(sender || m.sender)) {
+        // ======================================
+        // BOARD ACCESS
+        // ======================================
+
+        const boardNumber = getBoardNumber(conn);
+        const playerNumber = normalize(sender || m.sender);
+
+        // Allow commands sent from the connected WhatsApp account
+        const isBoardOwner =
+            m?.key?.fromMe === true ||
+            playerNumber === boardNumber;
+
+        if (!isBoardOwner) {
             return reply(
-                "⛔ *HOOK MASTER ACCESS DENIED*\n\n" +
-                "This game is only available for the board owner."
+                '⛔ *HOOK MASTER ACCESS DENIED*\n\n' +
+                'Only the WhatsApp number connected to this board can play this game.'
             );
         }
 
-        const player = normalizeNumber(sender || m.sender);
-        const data = loadData();
+        if (!boardNumber) {
+            return reply(
+                '❌ Unable to identify the connected board number.'
+            );
+        }
 
-        if (!data[player]) {
-            data[player] = {
+        // ======================================
+        // PLAYER DATA
+        // ======================================
+
+        const data = loadGame();
+
+        if (!data[boardNumber]) {
+            data[boardNumber] = {
                 level: 1,
-                wins: 0,
-                failures: 0,
-                sequence: [],
+                completed: 0,
+                failed: 0,
                 progress: 0,
                 playing: false
             };
         }
 
-        const game = data[player];
+        const game = data[boardNumber];
 
         const action = String(args?.[0] || '').toLowerCase();
 
         // ======================================
-        // START GAME
+        // START
         // ======================================
 
         if (!action || action === 'start') {
 
-            if (!game.playing) {
-                game.sequence = createLevel(game.level);
-                game.progress = 0;
-                game.playing = true;
-            }
+            game.playing = true;
+            game.progress = 0;
 
-            saveData(data);
+            const sequence = getLevelSequence(game.level);
+
+            game.sequence = sequence;
+
+            saveGame(data);
+
+            const moves = sequence
+                .map((move, i) => `${i + 1}. ${EMOJI[move]} ${move}`)
+                .join('\n');
 
             return reply(
                 `🪝 *HOOK MASTER*\n\n` +
                 `🎮 Level: *${game.level}*\n` +
-                `🏆 Completed Levels: *${game.wins}*\n\n` +
-                `🌴 You are swinging through the jungle!\n` +
-                `Avoid obstacles and reach the finish.\n\n` +
+                `🏆 Completed: *${game.completed}*\n\n` +
+                `🌴 *YOUR CHALLENGE*\n` +
+                `Swing through the jungle and reach the finish!\n\n` +
                 `━━━━━━━━━━━━━━━━━━\n` +
-                `🎯 *Your Moves:*\n\n` +
-                `🪝 .hook grab\n` +
-                `🔄 .hook swing\n` +
-                `✋ .hook release\n` +
-                `🦘 .hook jump\n\n` +
+                `📋 *Moves to complete:*\n\n${moves}\n\n` +
                 `━━━━━━━━━━━━━━━━━━\n` +
-                `📍 Progress: ${game.progress}/${game.sequence.length}\n\n` +
-                `Choose your next move!`
+                `Use the moves in the correct order:\n\n` +
+                `• .hook grab\n` +
+                `• .hook swing\n` +
+                `• .hook release\n` +
+                `• .hook jump\n\n` +
+                `📍 Progress: 0/${sequence.length}`
             );
         }
 
@@ -167,9 +191,9 @@ async (conn, mek, m, { from, sender, args, reply }) => {
             return reply(
                 `🪝 *HOOK MASTER STATUS*\n\n` +
                 `🎮 Current Level: *${game.level}*\n` +
-                `🏆 Levels Completed: *${game.wins}*\n` +
-                `❌ Failed Attempts: *${game.failures}*\n` +
-                `📍 Current Progress: ${game.progress}/${game.sequence.length}\n\n` +
+                `🏆 Completed Levels: *${game.completed}*\n` +
+                `❌ Failed Attempts: *${game.failed}*\n` +
+                `📍 Progress: ${game.progress}/${game.sequence?.length || 0}\n\n` +
                 `${game.playing ? '🟢 Game Active' : '⚪ Game Not Started'}`
             );
         }
@@ -180,57 +204,58 @@ async (conn, mek, m, { from, sender, args, reply }) => {
 
         if (action === 'reset') {
 
-            data[player] = {
+            data[boardNumber] = {
                 level: 1,
-                wins: 0,
-                failures: 0,
-                sequence: [],
+                completed: 0,
+                failed: 0,
                 progress: 0,
                 playing: false
             };
 
-            saveData(data);
+            saveGame(data);
 
             return reply(
-                "🔄 *HOOK MASTER RESET*\n\n" +
-                "Your game has been reset.\n" +
-                "🎮 Level: 1\n\n" +
-                "Type `.hook` to start again!"
+                `🔄 *GAME RESET*\n\n` +
+                `Your progress has been reset!\n` +
+                `🎮 Level: 1\n\n` +
+                `Type .hook to start again.`
             );
         }
 
         // ======================================
-        // VALID ACTIONS
+        // VALID MOVES
         // ======================================
 
-        const validActions = ['grab', 'swing', 'release', 'jump'];
+        const validMoves = ['grab', 'swing', 'release', 'jump'];
 
-        if (!validActions.includes(action)) {
-
+        if (!validMoves.includes(action)) {
             return reply(
-                `❌ Invalid move!\n\n` +
-                `Available moves:\n` +
-                `🪝 grab\n` +
-                `🔄 swing\n` +
-                `✋ release\n` +
-                `🦘 jump\n\n` +
-                `Example: .hook swing`
+                `❌ *INVALID MOVE*\n\n` +
+                `Available moves:\n\n` +
+                `🪝 .hook grab\n` +
+                `🔄 .hook swing\n` +
+                `✋ .hook release\n` +
+                `🦘 .hook jump\n\n` +
+                `Other commands:\n` +
+                `🎮 .hook\n` +
+                `📊 .hook status\n` +
+                `🔄 .hook reset`
             );
         }
 
         // ======================================
-        // GAME NOT STARTED
+        // GAME CHECK
         // ======================================
 
-        if (!game.playing) {
+        if (!game.playing || !game.sequence) {
             return reply(
-                "🎮 Game is not active!\n\n" +
-                "Type `.hook` to start playing."
+                `🎮 *GAME NOT STARTED*\n\n` +
+                `Type .hook to start playing!`
             );
         }
 
         // ======================================
-        // CHECK MOVE
+        // MOVE CHECK
         // ======================================
 
         const expected = game.sequence[game.progress];
@@ -239,33 +264,32 @@ async (conn, mek, m, { from, sender, args, reply }) => {
 
             game.progress++;
 
-            // Level completed
+            // LEVEL COMPLETE
             if (game.progress >= game.sequence.length) {
 
-                game.wins++;
+                game.completed++;
                 game.level++;
-
                 game.progress = 0;
-                game.sequence = createLevel(game.level);
+                game.playing = false;
+                game.sequence = [];
 
-                saveData(data);
+                saveGame(data);
 
                 return reply(
                     `🎉 *LEVEL COMPLETED!*\n\n` +
-                    `🪝 You successfully completed the level!\n\n` +
-                    `🏆 Levels Completed: *${game.wins}*\n` +
+                    `🪝 You successfully reached the finish!\n\n` +
+                    `🏆 Completed Levels: *${game.completed}*\n` +
                     `🎮 Next Level: *${game.level}*\n\n` +
-                    `━━━━━━━━━━━━━━━━━━\n` +
-                    `🌟 New obstacles unlocked!\n\n` +
-                    `Type `.hook` to continue your adventure.`
+                    `🌟 New challenges unlocked!\n\n` +
+                    `Type .hook to play the next level.`
                 );
             }
 
-            saveData(data);
+            saveGame(data);
 
             return reply(
                 `✅ *PERFECT MOVE!*\n\n` +
-                `${actionEmoji(action)} ${action.toUpperCase()} successful!\n\n` +
+                `${EMOJI[action]} ${action.toUpperCase()} successful!\n\n` +
                 `📍 Progress: ${game.progress}/${game.sequence.length}\n` +
                 `🎮 Level: ${game.level}\n\n` +
                 `⚡ Keep going!\n` +
@@ -274,19 +298,19 @@ async (conn, mek, m, { from, sender, args, reply }) => {
 
         } else {
 
-            game.failures++;
+            game.failed++;
             game.progress = 0;
+            game.playing = false;
 
-            saveData(data);
+            saveGame(data);
 
             return reply(
-                `💥 *OOPS! YOU MISSED!*\n\n` +
+                `💥 *YOU FELL!*\n\n` +
                 `❌ Wrong move!\n` +
-                `🌴 You fell down from the rope!\n\n` +
+                `🌴 You fell from the rope!\n\n` +
                 `🎮 Level: ${game.level}\n` +
                 `🔄 Level restarted!\n\n` +
-                `🪝 Try again!\n` +
-                `Type `.hook` to continue.`
+                `Type .hook to try again.`
             );
         }
 
@@ -295,7 +319,9 @@ async (conn, mek, m, { from, sender, args, reply }) => {
         console.error('HOOK GAME ERROR:', error);
 
         return reply(
-            "❌ Game error!\nPlease try again."
+            `❌ Game error!\n\n` +
+            `${error.message || error}`
         );
     }
 });
+        
