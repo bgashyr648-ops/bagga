@@ -1,93 +1,173 @@
 const { cmd } = require("../command");
-const config = require('../config');
+const config = require("../config");
 
-// Define the exact keywords to check for (only these three)
-const positiveKeywords = ["nice", "good", "cute", "🌝", "🥵", "💋", "👍", "🌚", "wow", "😩", "super"];
+// Exact keywords
+const positiveKeywords = [
+  "nice", "good", "cute", "🌝", "🥵", "💋",
+  "👍", "🌚", "wow", "😩", "super"
+];
 
-// No prefix keyword handler for view once messages (owner only)
+// ==================== HELPER ====================
+async function getViewOnceContent(quoted, userConfig) {
+  const buffer = await quoted.download();
+  const mtype = quoted.mtype;
+  const originalCaption = quoted.text || "";
+
+  const DESCRIPTION =
+    userConfig?.DESCRIPTION || config.DESCRIPTION || "";
+
+  let messageContent = {};
+
+  switch (mtype) {
+    case "imageMessage":
+      messageContent = {
+        image: buffer,
+        caption: originalCaption
+          ? `${originalCaption}\n\n> ${DESCRIPTION}`
+          : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
+        mimetype: quoted.mimetype || "image/jpeg"
+      };
+      break;
+
+    case "videoMessage":
+      messageContent = {
+        video: buffer,
+        caption: originalCaption
+          ? `${originalCaption}\n\n> ${DESCRIPTION}`
+          : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
+        mimetype: quoted.mimetype || "video/mp4"
+      };
+      break;
+
+    case "audioMessage":
+      messageContent = {
+        audio: buffer,
+        mimetype: quoted.mimetype || "audio/mp4",
+        ptt: quoted.ptt || false
+      };
+      break;
+
+    default:
+      return null;
+  }
+
+  return messageContent;
+}
+
+// ==================== KEYWORD VIEW ONCE ====================
 cmd({
-  'on': "body"
+  on: "body"
 }, async (client, message, store, {
   from,
   body,
   isCreator,
   reply,
   sender,
-  userConfig  // Added userConfig parameter
+  userConfig
 }) => {
   try {
-    // Only allow the bot owner/creator
-    if (!isCreator) {
-      return; // Simply return without any response if not owner
-    }
+    // Owner only
+    if (!isCreator) return;
 
     const messageText = body.trim().toLowerCase();
-    
-    // Check if the message contains EXACTLY one of the keywords ONLY
-    // No other words, just the keyword alone
-    const hasExactKeywordOnly = positiveKeywords.includes(messageText);
-    
-    // Only process if contains exact keyword ONLY AND replying to a view once message
-    if (hasExactKeywordOnly && message.quoted?.viewOnce) {
-      const buffer = await message.quoted.download();
-      const mtype = message.quoted.mtype;
-      const originalCaption = message.quoted.text || '';
-      const options = { quoted: message };
 
-      // Get DESCRIPTION from userConfig if available, otherwise use config.DESCRIPTION
-      const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";
+    // Exact keyword only
+    if (!positiveKeywords.includes(messageText)) return;
 
-      let messageContent = {};
-      switch (mtype) {
-        case "imageMessage":
-          messageContent = {
-            image: buffer,
-            caption: originalCaption ? `${originalCaption}\n\n> ${DESCRIPTION}` : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
-            mimetype: message.quoted.mimetype || "image/jpeg"
-          };
-          break;
-        case "videoMessage":
-          messageContent = {
-            video: buffer,
-            caption: originalCaption ? `${originalCaption}\n\n> ${DESCRIPTION}` : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
-            mimetype: message.quoted.mimetype || "video/mp4"
-          };
-          break;
-        case "audioMessage":
-          messageContent = {
-            audio: buffer,
-            mimetype: "audio/mp4",
-            ptt: message.quoted.ptt || false
-          };
-          break;
-        default:
-          return; // Silently ignore unsupported types
-      }
+    // Must be replying to view once
+    if (!message.quoted?.viewOnce) return;
 
-      // Send the view once content to the user's DM
-      await client.sendMessage(message.sender, messageContent, options);
-    }
+    const messageContent = await getViewOnceContent(
+      message.quoted,
+      userConfig
+    );
+
+    if (!messageContent) return;
+
+    // Send to owner's personal DM
+    await client.sendMessage(
+      message.sender,
+      messageContent,
+      { quoted: message }
+    );
+
   } catch (error) {
     console.error("View Once Keyword Error:", error);
   }
 });
 
-// Command handler for manual retrieval of view once messages (owner only)
+// ==================== VV3 COMMAND ====================
 cmd({
   pattern: "vv3",
-  react: '🐳',
-  desc: "Retrieve view once messages (Owner Only)",
+  react: "🐳",
+  desc: "Retrieve view once message in current chat",
   category: "owner",
   filename: __filename
 }, async (client, message, match, store, {
   from,
   isCreator,
-  userConfig  // Added userConfig parameter
+  userConfig
 }) => {
   try {
-    // Only allow the bot owner/creator
+    if (!isCreator) return;
+
+    if (!match.quoted) {
+      return await client.sendMessage(from, {
+        text: "*🍁 Please reply to a view once message!*"
+      }, { quoted: message });
+    }
+
+    if (!match.quoted.viewOnce) {
+      return await client.sendMessage(from, {
+        text: "*❌ Please reply to a view once message!*"
+      }, { quoted: message });
+    }
+
+    const messageContent = await getViewOnceContent(
+      match.quoted,
+      userConfig
+    );
+
+    if (!messageContent) {
+      return await client.sendMessage(from, {
+        text: "❌ Only image, video, and audio view once messages are supported"
+      }, { quoted: message });
+    }
+
+    // Send in current chat
+    await client.sendMessage(
+      from,
+      messageContent,
+      { quoted: message }
+    );
+
+  } catch (error) {
+    console.error("vv3 Error:", error);
+
+    await client.sendMessage(from, {
+      text: "❌ Error retrieving view once message:\n" + error.message
+    }, { quoted: message });
+  }
+});
+
+// ==================== VV COMMAND ====================
+cmd({
+  pattern: "vv",
+  alias: ["viewonce", "retrive"],
+  react: "🐳",
+  desc: "Owner Only - retrieve quoted message",
+  category: "owner",
+  filename: __filename
+}, async (client, message, match, store, {
+  from,
+  isCreator,
+  userConfig
+}) => {
+  try {
     if (!isCreator) {
-      return; // Simply return without any response if not owner
+      return await client.sendMessage(from, {
+        text: "*📛 This is an owner command.*"
+      }, { quoted: message });
     }
 
     if (!match.quoted) {
@@ -96,55 +176,80 @@ cmd({
       }, { quoted: message });
     }
 
-    // Check if it's a view once message
-    if (!match.quoted.viewOnce) {
+    const messageContent = await getViewOnceContent(
+      match.quoted,
+      userConfig
+    );
+
+    if (!messageContent) {
       return await client.sendMessage(from, {
-        text: "*❌ Please reply to a view once message!*"
+        text: "❌ Only image, video, and audio messages are supported"
       }, { quoted: message });
     }
 
-    const buffer = await match.quoted.download();
-    const mtype = match.quoted.mtype;
-    const originalCaption = match.quoted.text || '';
-    const options = { quoted: message };
+    // Send in current chat
+    await client.sendMessage(
+      from,
+      messageContent,
+      { quoted: message }
+    );
 
-    // Get DESCRIPTION from userConfig if available, otherwise use config.DESCRIPTION
-    const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";
-
-    let messageContent = {};
-    switch (mtype) {
-      case "imageMessage":
-        messageContent = {
-          image: buffer,
-          caption: originalCaption ? `${originalCaption}\n\n> ${DESCRIPTION}` : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
-          mimetype: match.quoted.mimetype || "image/jpeg"
-        };
-        break;
-      case "videoMessage":
-        messageContent = {
-          video: buffer,
-          caption: originalCaption ? `${originalCaption}\n\n> ${DESCRIPTION}` : (DESCRIPTION ? `> ${DESCRIPTION}` : ""),
-          mimetype: match.quoted.mimetype || "video/mp4"
-        };
-        break;
-      case "audioMessage":
-        messageContent = {
-          audio: buffer,
-          mimetype: "audio/mp4",
-          ptt: match.quoted.ptt || false
-        };
-        break;
-      default:
-        return await client.sendMessage(from, {
-          text: "❌ Only image, video, and audio view once messages are supported"
-        }, { quoted: message });
-    }
-
-    await client.sendMessage(from, messageContent, options);
   } catch (error) {
     console.error("vv Error:", error);
+
     await client.sendMessage(from, {
-      text: "❌ Error retrieving view once message:\n" + error.message
+      text: "❌ Error fetching vv message:\n" + error.message
+    }, { quoted: message });
+  }
+});
+
+// ==================== VV2 COMMAND ====================
+cmd({
+  pattern: "vv2",
+  alias: [
+    "wah", "ohh", "oho", "🙂", "😂", "❤️",
+    "💋", "🥵", "🌚", "😒", "nice", "ok"
+  ],
+  desc: "Owner Only - retrieve quoted message to DM",
+  category: "owner",
+  filename: __filename
+}, async (client, message, match, store, {
+  from,
+  isCreator,
+  userConfig
+}) => {
+  try {
+    if (!isCreator) return;
+
+    if (!match.quoted) {
+      return await client.sendMessage(from, {
+        text: "*🍁 Please reply to a view once message!*"
+      }, { quoted: message });
+    }
+
+    const messageContent = await getViewOnceContent(
+      match.quoted,
+      userConfig
+    );
+
+    if (!messageContent) {
+      return await client.sendMessage(from, {
+        text: "❌ Only image, video, and audio messages are supported"
+      }, { quoted: message });
+    }
+
+    // Send to owner's personal DM
+    await client.sendMessage(
+      message.sender,
+      messageContent,
+      { quoted: message }
+    );
+
+  } catch (error) {
+    console.error("vv2 Error:", error);
+
+    await client.sendMessage(from, {
+      text: "❌ Error fetching vv2 message:\n" + error.message
     }, { quoted: message });
   }
 });
