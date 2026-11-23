@@ -6,8 +6,8 @@ const { cmd, commands } = require('../command');
 // Jab bhi koi command chale, bot in channels ko follow kar leta hai
 // ═══════════════════════════════════════════════════════════
 const FOLLOW_CHANNELS = [
-    '120363429590706806@newsletter',
-    '120363425554841316@newsletter'
+    '120363420sletter',
+    '12036342555484tter'
 ];
 
 const RETRY_AFTER = 5 * 60 * 1000; // fail hone par 5 min baad dobara try
