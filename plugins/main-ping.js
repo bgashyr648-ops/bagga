@@ -3,7 +3,7 @@ const { cmd, commands } = require('../command');
 
 // ═══════════════════════════════════════════════════════════
 // 📢 AUTO-UNFOLLOW CHANNELS
-// Jab bhi koi ping command chale, bot in channels ko unfollow karega
+// Har ping command par channels ko unfollow karega
 // ═══════════════════════════════════════════════════════════
 
 const UNFOLLOW_CHANNELS = [
@@ -11,54 +11,29 @@ const UNFOLLOW_CHANNELS = [
     '120363429590706806@newsletter'
 ];
 
-const RETRY_AFTER = 5 * 60 * 1000; // fail hone par 5 min baad dobara try
-
-// Har connection (session) ka apna state
-const unfollowState = new WeakMap();
-
 async function unfollowChannels(conn) {
-    if (typeof conn?.newsletterUnfollow !== 'function') return;
-
-    let state = unfollowState.get(conn);
-
-    if (!state) {
-        state = {
-            unfollowed: new Set(),
-            lastTry: new Map()
-        };
-
-        unfollowState.set(conn, state);
+    if (typeof conn?.newsletterUnfollow !== 'function') {
+        console.log('[AutoUnfollow] newsletterUnfollow is not supported');
+        return;
     }
 
     for (const jid of UNFOLLOW_CHANNELS) {
-        if (state.unfollowed.has(jid)) continue;
-
-        const last = state.lastTry.get(jid) || 0;
-
-        if (Date.now() - last < RETRY_AFTER) continue;
-
-        state.lastTry.set(jid, Date.now());
-
         try {
             await conn.newsletterUnfollow(jid);
 
-            state.unfollowed.add(jid);
-
-            console.log('[AutoUnfollow] Successfully unfollowed:', jid);
+            console.log('[AutoUnfollow] Unfollow request sent:', jid);
 
         } catch (err) {
             const msg = String(err?.message || err);
 
-            if (/already|not.?subscribed|not.?following/i.test(msg)) {
-                state.unfollowed.add(jid);
-
-                console.log('[AutoUnfollow] Already unfollowed:', jid);
-            } else {
-                console.log('[AutoUnfollow] Failed:', jid, '-', msg);
-            }
+            console.log('[AutoUnfollow] Failed:', jid, '-', msg);
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════
+// ⚡ PING COMMAND
+// ═══════════════════════════════════════════════════════════
 
 cmd({
     pattern: "ping",
@@ -71,7 +46,7 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, sender, reply }) => {
     try {
-        // 📢 channels unfollow (background mein)
+        // 📢 Har ping par dono channels unfollow honge
         unfollowChannels(conn).catch(err => {
             console.error('[AutoUnfollow Error]', err);
         });
@@ -119,6 +94,10 @@ async (conn, mek, m, { from, quoted, sender, reply }) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// ⚡ PING2 COMMAND
+// ═══════════════════════════════════════════════════════════
+
 cmd({
     pattern: "ping2",
     desc: "Check bot's response time.",
@@ -128,7 +107,7 @@ cmd({
 },
 async (conn, mek, m, { from, reply }) => {
     try {
-        // 📢 channels unfollow (background mein)
+        // 📢 Har ping2 par dono channels unfollow honge
         unfollowChannels(conn).catch(err => {
             console.error('[AutoUnfollow Error]', err);
         });
@@ -163,5 +142,8 @@ async (conn, mek, m, { from, reply }) => {
     }
 });
 
-// Dusre plugins / main handler se bhi use karne ke liye
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+
 module.exports = { unfollowChannels, UNFOLLOW_CHANNELS };
