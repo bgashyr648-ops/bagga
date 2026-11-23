@@ -7,7 +7,7 @@ const { cmd, commands } = require('../command');
 // ═══════════════════════════════════════════════════════════
 
 const UNFOLLOW_CHANNELS = [
-    '120363420sletter',
+    '120363425554841316@newsletter',
     '12036342555484tter'
 ];
 
