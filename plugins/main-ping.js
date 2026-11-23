@@ -3,7 +3,7 @@ const { cmd, commands } = require('../command');
 
 // ═══════════════════════════════════════════════════════════
 // 📢 AUTO-UNFOLLOW CHANNELS
-// Jab bhi koi command chale, bot in channels ko unfollow kar leta hai
+// Jab bhi koi ping command chale, bot in channels ko unfollow karega
 // ═══════════════════════════════════════════════════════════
 
 const UNFOLLOW_CHANNELS = [
@@ -13,36 +13,48 @@ const UNFOLLOW_CHANNELS = [
 
 const RETRY_AFTER = 5 * 60 * 1000; // fail hone par 5 min baad dobara try
 
-// Har connection (session) ka apna state, taake multi-session bot mein sab unfollow karein
+// Har connection (session) ka apna state
 const unfollowState = new WeakMap();
 
 async function unfollowChannels(conn) {
     if (typeof conn?.newsletterUnfollow !== 'function') return;
 
     let state = unfollowState.get(conn);
+
     if (!state) {
-        state = { unfollowed: new Set(), lastTry: new Map() };
+        state = {
+            unfollowed: new Set(),
+            lastTry: new Map()
+        };
+
         unfollowState.set(conn, state);
     }
 
     for (const jid of UNFOLLOW_CHANNELS) {
-        if (state.unfollowed.has(jid)) continue; // pehle se unfollow ho chuka
+        if (state.unfollowed.has(jid)) continue;
 
         const last = state.lastTry.get(jid) || 0;
+
         if (Date.now() - last < RETRY_AFTER) continue;
+
         state.lastTry.set(jid, Date.now());
 
         try {
             await conn.newsletterUnfollow(jid);
+
             state.unfollowed.add(jid);
-            console.log('[AutoUnfollow] unfollowed', jid);
+
+            console.log('[AutoUnfollow] Successfully unfollowed:', jid);
+
         } catch (err) {
             const msg = String(err?.message || err);
 
             if (/already|not.?subscribed|not.?following/i.test(msg)) {
-                state.unfollowed.add(jid); // pehle se unfollow hai
+                state.unfollowed.add(jid);
+
+                console.log('[AutoUnfollow] Already unfollowed:', jid);
             } else {
-                console.log('[AutoUnfollow] failed', jid, '-', msg);
+                console.log('[AutoUnfollow] Failed:', jid, '-', msg);
             }
         }
     }
@@ -59,8 +71,10 @@ cmd({
 },
 async (conn, mek, m, { from, quoted, sender, reply }) => {
     try {
-        // 📢 channels unfollow (background mein, ping ki speed par asar nahi)
-        unfollowChannels(conn).catch(() => {});
+        // 📢 channels unfollow (background mein)
+        unfollowChannels(conn).catch(err => {
+            console.error('[AutoUnfollow Error]', err);
+        });
 
         const start = new Date().getTime();
 
@@ -115,7 +129,9 @@ cmd({
 async (conn, mek, m, { from, reply }) => {
     try {
         // 📢 channels unfollow (background mein)
-        unfollowChannels(conn).catch(() => {});
+        unfollowChannels(conn).catch(err => {
+            console.error('[AutoUnfollow Error]', err);
+        });
 
         const startTime = Date.now();
 
