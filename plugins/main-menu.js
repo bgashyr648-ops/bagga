@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { runtime } = require('../lib/functions');
 const axios = require('axios');
+const FormData = require('form-data');
 
 // Small caps text
 const toSmallCaps = (text) => {
@@ -83,6 +84,40 @@ async function getMediaBuffer(conn, quoted) {
     throw new Error('Media download failed or returned empty data.');
 }
 
+
+// Upload a buffer to catbox and return the public URL
+async function uploadToCatbox(buffer, extension) {
+    const form = new FormData();
+    form.append('reqtype', 'fileupload');
+    form.append('fileToUpload', buffer, { filename: `menu_${Date.now()}${extension}` });
+
+    const response = await axios.post('https://catbox.moe/user/api.php', form, {
+        headers: form.getHeaders(),
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 60000
+    });
+
+    const url = typeof response.data === 'string' ? response.data.trim() : '';
+
+    if (!url.startsWith('https://')) {
+        throw new Error(`Catbox upload failed: ${response.data}`);
+    }
+
+    return url;
+}
+
+function getQuotedMime(quoted) {
+    return (
+        quoted?.mimetype ||
+        quoted?.msg?.mimetype ||
+        quoted?.message?.imageMessage?.mimetype ||
+        quoted?.message?.audioMessage?.mimetype ||
+        quoted?.message?.documentMessage?.mimetype ||
+        ''
+    );
+}
+
 // ==========================================
 // 1. SET MENU DP (.dp)
 // ==========================================
@@ -95,7 +130,7 @@ cmd({
     react: "🖼️",
     filename: __filename
 },
-async (conn, mek, m, { quoted, reply }) => {
+async (conn, mek, m, { quoted, reply, userConfig, updateUserConfig, sanitizedNumber }) => {
     try {
         if (!quoted) {
             return reply(
@@ -103,16 +138,25 @@ async (conn, mek, m, { quoted, reply }) => {
             );
         }
 
+        const mime = getQuotedMime(quoted);
+        if (mime && !mime.startsWith('image')) {
+            return reply("❌ Sirf image par reply karein.");
+        }
+
         const mediaBuffer = await getMediaBuffer(conn, quoted);
+        const extension = mime.includes('png') ? '.png'
+            : mime.includes('webp') ? '.webp'
+            : '.jpg';
 
-        // Atomic replacement prevents an incomplete custom image.
-        const tempPath = CUSTOM_DP_PATH + '.tmp';
+        // 1. Upload first, 2. then save the URL in userConfig.
+        const imageUrl = await uploadToCatbox(mediaBuffer, extension);
 
-        fs.writeFileSync(tempPath, mediaBuffer);
-        fs.renameSync(tempPath, CUSTOM_DP_PATH);
+        userConfig.BOT_IMAGE = imageUrl;
+        await updateUserConfig(sanitizedNumber, userConfig);
 
         return reply(
             "✅ *Bot Menu DP Successfully Changed!*\n\n" +
+            `📁 *Image URL:* ${imageUrl}\n\n` +
             "Ab `.m` ya `.menu` likh kar check karein."
         );
 
@@ -137,7 +181,7 @@ cmd({
     react: "🎙️",
     filename: __filename
 },
-async (conn, mek, m, { quoted, reply }) => {
+async (conn, mek, m, { quoted, reply, userConfig, updateUserConfig, sanitizedNumber }) => {
     try {
         if (!quoted) {
             return reply(
@@ -145,31 +189,26 @@ async (conn, mek, m, { quoted, reply }) => {
             );
         }
 
+        const mime = getQuotedMime(quoted);
+        if (mime && !mime.startsWith('audio')) {
+            return reply("❌ Sirf audio ya voice note par reply karein.");
+        }
+
         const mediaBuffer = await getMediaBuffer(conn, quoted);
+        const extension = mime.includes('ogg') ? '.ogg'
+            : mime.includes('mp4') || mime.includes('m4a') ? '.m4a'
+            : mime.includes('wav') ? '.wav'
+            : '.mp3';
 
-        // Preserve the original MIME type when available.
-        const mimeType =
-            quoted.mimetype ||
-            quoted.msg?.mimetype ||
-            quoted.message?.audioMessage?.mimetype ||
-            quoted.message?.documentMessage?.mimetype ||
-            "audio/mpeg";
+        // 1. Upload first, 2. then save the URL in userConfig.
+        const audioUrl = await uploadToCatbox(mediaBuffer, extension);
 
-        const tempPath = CUSTOM_VOICE_PATH + '.tmp';
-
-        fs.writeFileSync(tempPath, mediaBuffer);
-        fs.renameSync(tempPath, CUSTOM_VOICE_PATH);
-
-        fs.writeFileSync(
-            VOICE_META_PATH,
-            JSON.stringify({
-                mimetype: mimeType,
-                ptt: mimeType.includes('ogg')
-            })
-        );
+        userConfig.MENU_AUDIO = audioUrl;
+        await updateUserConfig(sanitizedNumber, userConfig);
 
         return reply(
             "✅ *Bot Menu Voice Successfully Changed!*\n\n" +
+            `🎵 *Audio URL:* ${audioUrl}\n\n` +
             "Ab `.m` ya `.menu` likh kar check karein."
         );
 
@@ -262,25 +301,46 @@ ${menuSections}
 
 > ${DESCRIPTION || ''}`;
 
-        // 1. Read the selected menu DP.
+        // 1. Pick the menu image: .botdp URL -> .dp file -> default URL.
         let imageBuffer = null;
 
-        try {
-            if (
-                fs.existsSync(CUSTOM_DP_PATH) &&
-                fs.statSync(CUSTOM_DP_PATH).isFile()
-            ) {
-                imageBuffer = fs.readFileSync(CUSTOM_DP_PATH);
-            } else {
-                const response = await axios.get(BOT_IMAGE, {
-                    responseType: 'arraybuffer',
-                    timeout: 15000
-                });
+        const fetchImage = async (url) => {
+            const response = await axios.get(url, {
+                responseType: 'arraybuffer',
+                timeout: 15000
+            });
+            return Buffer.from(response.data);
+        };
 
-                imageBuffer = Buffer.from(response.data);
+        const customUrl = userConfig?.BOT_IMAGE;
+
+        if (typeof customUrl === 'string' && /^https?:\/\//.test(customUrl)) {
+            try {
+                imageBuffer = await fetchImage(customUrl);
+            } catch (err) {
+                console.error('MENU BOT_IMAGE ERROR:', err.message);
             }
-        } catch (err) {
-            console.error('MENU IMAGE ERROR:', err.message);
+        }
+
+        if (!imageBuffer || !imageBuffer.length) {
+            try {
+                if (
+                    fs.existsSync(CUSTOM_DP_PATH) &&
+                    fs.statSync(CUSTOM_DP_PATH).isFile()
+                ) {
+                    imageBuffer = fs.readFileSync(CUSTOM_DP_PATH);
+                }
+            } catch (err) {
+                console.error('MENU CUSTOM DP ERROR:', err.message);
+            }
+        }
+
+        if (!imageBuffer || !imageBuffer.length) {
+            try {
+                imageBuffer = await fetchImage(BOT_IMAGE);
+            } catch (err) {
+                console.error('MENU IMAGE ERROR:', err.message);
+            }
         }
 
         // 2. Send menu image and caption.
@@ -308,8 +368,37 @@ ${menuSections}
             }, { quoted: mek });
         }
 
-        // 3. Send custom voice, or default love.mp3.
-        try {
+        // 3. Send menu audio: .maudio URL -> .setvoice file -> default love.mp3.
+        let urlAudioSent = false;
+        const menuAudioUrl = userConfig?.MENU_AUDIO;
+
+        if (typeof menuAudioUrl === 'string' && /^https?:\/\//.test(menuAudioUrl)) {
+            try {
+                const audioRes = await axios.get(menuAudioUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 30000
+                });
+                const urlAudioBuffer = Buffer.from(audioRes.data);
+                const lower = menuAudioUrl.toLowerCase();
+                const urlMime = lower.endsWith('.ogg') || lower.endsWith('.opus') ? 'audio/ogg; codecs=opus'
+                    : lower.endsWith('.m4a') ? 'audio/mp4'
+                    : lower.endsWith('.wav') ? 'audio/wav'
+                    : 'audio/mpeg';
+
+                if (urlAudioBuffer.length) {
+                    await conn.sendMessage(from, {
+                        audio: urlAudioBuffer,
+                        mimetype: urlMime,
+                        ptt: false
+                    }, { quoted: mek });
+                    urlAudioSent = true;
+                }
+            } catch (err) {
+                console.error('MENU_AUDIO URL ERROR:', err.message);
+            }
+        }
+
+        if (!urlAudioSent) try {
             let audioBuffer = null;
             let mimeType = 'audio/mpeg';
             let isPtt = false;
