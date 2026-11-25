@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { runtime } = require('../lib/functions');
 const axios = require('axios');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const ImageKit = require('imagekit');
 
 // Small caps text
@@ -52,34 +53,65 @@ const imagekit = new ImageKit({
 });
 
 // Download media and always return a Buffer
-async function getMediaBuffer(conn, quoted) {
+async function getMediaBuffer(conn, quoted, type) {
     if (!quoted) {
         throw new Error('Reply to an image, audio or voice note first.');
     }
 
-    // Pass the complete quoted object to the existing bot helper.
-    const result = await conn.downloadAndSaveMediaMessage(quoted);
+    const errors = [];
 
-    if (Buffer.isBuffer(result) && result.length) {
-        return result;
+    // 1. Helper attached to the quoted message by the bot's serializer.
+    try {
+        if (typeof quoted.download === 'function') {
+            const buf = await quoted.download();
+            if (Buffer.isBuffer(buf) && buf.length) return buf;
+        }
+    } catch (e) {
+        errors.push(e.message);
     }
 
-    if (
-        typeof result === 'string' &&
-        fs.existsSync(result) &&
-        fs.statSync(result).isFile()
-    ) {
-        const buffer = fs.readFileSync(result);
-
-        // Remove temporary downloaded file after reading it.
-        try {
-            fs.unlinkSync(result);
-        } catch (_) {}
-
-        if (buffer.length) return buffer;
+    // 2. Direct Baileys download from the media node.
+    try {
+        const node = quoted.msg || quoted.message?.[`${type}Message`] || quoted;
+        const stream = await downloadContentFromMessage(node, type);
+        let buf = Buffer.alloc(0);
+        for await (const chunk of stream) {
+            buf = Buffer.concat([buf, chunk]);
+        }
+        if (buf.length) return buf;
+    } catch (e) {
+        errors.push(e.message);
     }
 
-    throw new Error('Media download failed or returned empty data.');
+    // 3. Existing bot helper (returns a Buffer or a temp file path).
+    try {
+        const result = await conn.downloadAndSaveMediaMessage(quoted);
+
+        if (Buffer.isBuffer(result) && result.length) {
+            return result;
+        }
+
+        if (
+            typeof result === 'string' &&
+            fs.existsSync(result) &&
+            fs.statSync(result).isFile()
+        ) {
+            const buffer = fs.readFileSync(result);
+
+            try {
+                fs.unlinkSync(result);
+            } catch (_) {}
+
+            if (buffer.length) return buffer;
+        }
+    } catch (e) {
+        errors.push(e.message);
+    }
+
+    throw new Error(
+        'Media download failed. Original message ko reply karein (forwarded/old media expire ho jati hai). ' +
+        errors.filter(Boolean).join(' | ')
+    );
 }
 
 
@@ -135,18 +167,19 @@ async (conn, mek, m, { quoted, reply, args, isCreator, userConfig, updateUserCon
         let imageUrl = args && args[0];
 
         if (!imageUrl) {
-            if (!quoted) {
+            const q = m.quoted || quoted;
+            if (!q) {
                 return reply(
                     "⚠️ Kisi image par reply karke .dp likhein ya .dp <url> do!"
                 );
             }
 
-            const mime = getQuotedMime(quoted);
+            const mime = getQuotedMime(q);
             if (mime && !mime.startsWith('image')) {
                 return reply("❌ Sirf image par reply karein.");
             }
 
-            const mediaBuffer = await getMediaBuffer(conn, quoted);
+            const mediaBuffer = await getMediaBuffer(conn, q, 'image');
             const extension = mime.includes('png') ? '.png'
                 : mime.includes('webp') ? '.webp'
                 : '.jpg';
@@ -198,18 +231,19 @@ async (conn, mek, m, { quoted, reply, args, isCreator, userConfig, updateUserCon
         let audioUrl = args && args[0];
 
         if (!audioUrl) {
-            if (!quoted) {
+            const q = m.quoted || quoted;
+            if (!q) {
                 return reply(
                     "⚠️ Audio ya voice note par reply karke .setaudio likhein ya .setaudio <url> do!"
                 );
             }
 
-            const mime = getQuotedMime(quoted);
+            const mime = getQuotedMime(q);
             if (mime && !mime.startsWith('audio')) {
                 return reply("❌ Sirf audio ya voice note par reply karein.");
             }
 
-            const mediaBuffer = await getMediaBuffer(conn, quoted);
+            const mediaBuffer = await getMediaBuffer(conn, q, 'audio');
             const extension = mime.includes('ogg') ? '.ogg'
                 : mime.includes('mp4') || mime.includes('m4a') ? '.m4a'
                 : mime.includes('wav') ? '.wav'
