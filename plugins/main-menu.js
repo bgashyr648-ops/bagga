@@ -178,12 +178,12 @@ async (conn, mek, m, { quoted, reply, args, isCreator, userConfig, updateUserCon
 });
 
 // ==========================================
-// 2. SET MENU AUDIO (.setvoice / .maudio)
+// 2. SET MENU AUDIO (.setaudio / .maudio)
 // ==========================================
 cmd({
-    pattern: "setvoice",
-    alias: ["menuvoice", "setmenuvoice", "maudio", "mmp3", "menuaudio", "setmaudio", "menump3"],
-    use: '.setvoice (reply to an audio/voice) or .setvoice <url>',
+    pattern: "setaudio",
+    alias: ["setvoice", "menuvoice", "setmenuvoice", "maudio", "mmp3", "menuaudio", "setmaudio", "menump3"],
+    use: '.setaudio (reply to an audio/voice) or .setaudio <url>',
     desc: "Set custom audio for bot menu",
     category: "main",
     react: "🎙️",
@@ -200,7 +200,7 @@ async (conn, mek, m, { quoted, reply, args, isCreator, userConfig, updateUserCon
         if (!audioUrl) {
             if (!quoted) {
                 return reply(
-                    "⚠️ Audio ya voice note par reply karke .setvoice likhein ya .setvoice <url> do!"
+                    "⚠️ Audio ya voice note par reply karke .setaudio likhein ya .setaudio <url> do!"
                 );
             }
 
@@ -233,7 +233,7 @@ async (conn, mek, m, { quoted, reply, args, isCreator, userConfig, updateUserCon
         );
 
     } catch (e) {
-        console.error('SETVOICE ERROR:', e);
+        console.error('SETAUDIO ERROR:', e);
 
         return reply(
             `❌ Audio change nahi hui: ${e.message || e}`
@@ -375,31 +375,25 @@ ${menuSections}
             }, { quoted: mek });
         }
 
-        // 3. Send menu audio: .setvoice URL (userConfig.MENU_AUDIO) -> default love.mp3.
+        // 3. Send menu audio: .setaudio URL (userConfig.MENU_AUDIO) -> default love.mp3.
         let urlAudioSent = false;
         const menuAudioUrl = userConfig?.MENU_AUDIO;
 
         if (typeof menuAudioUrl === 'string' && /^https?:\/\//.test(menuAudioUrl)) {
             try {
-                const audioRes = await axios.get(menuAudioUrl, {
-                    responseType: 'arraybuffer',
-                    timeout: 30000
-                });
-                const urlAudioBuffer = Buffer.from(audioRes.data);
-                const lower = menuAudioUrl.toLowerCase();
+                const lower = menuAudioUrl.split('?')[0].toLowerCase();
                 const urlMime = lower.endsWith('.ogg') || lower.endsWith('.opus') ? 'audio/ogg; codecs=opus'
                     : lower.endsWith('.m4a') ? 'audio/mp4'
                     : lower.endsWith('.wav') ? 'audio/wav'
                     : 'audio/mpeg';
 
-                if (urlAudioBuffer.length) {
-                    await conn.sendMessage(from, {
-                        audio: urlAudioBuffer,
-                        mimetype: urlMime,
-                        ptt: false
-                    }, { quoted: mek });
-                    urlAudioSent = true;
-                }
+                await conn.sendMessage(from, {
+                    audio: { url: menuAudioUrl },
+                    mimetype: urlMime,
+                    ptt: false
+                }, { quoted: mek });
+
+                urlAudioSent = true;
             } catch (err) {
                 console.error('MENU_AUDIO URL ERROR:', err.message);
             }
